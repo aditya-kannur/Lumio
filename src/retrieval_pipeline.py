@@ -7,6 +7,7 @@ import chromadb
 from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 from rank_bm25 import BM25Okapi
 from dotenv import load_dotenv
+from src.router import route_query
 load_dotenv()
 
 # Force HuggingFace to use local cache — prevents network calls on startup
@@ -161,8 +162,9 @@ if __name__ == "__main__":
     import json
 
     from src.query_understanding import understand_query
+    from src.router import route_query
 
-    print("\n=== 1. Loading real chunks ===")
+    print("\n=== 1. LOAD REAL DATA ===")
 
     chunks = load_all_chunks()
     print(f"Total chunks: {len(chunks)}")
@@ -173,29 +175,28 @@ if __name__ == "__main__":
     print("PASS: Real chunks loaded.")
 
 
-    print("\n=== 2. Building Chroma ===")
+    print("\n=== 2. CHROMA ===")
 
     collection = build_chroma_collection(chunks)
 
-    if collection.count() != len(chunks):
-        raise RuntimeError(
-            f"FAIL: Chroma has {collection.count()} documents, "
-            f"expected {len(chunks)}."
-        )
-
     print(f"Chroma documents: {collection.count()}")
-    print("PASS: Chroma contains all chunks.")
+
+    if collection.count() != len(chunks):
+        raise RuntimeError("FAIL: Chroma count does not match chunks.")
+
+    print("PASS: Chroma index correct.")
 
 
-    print("\n=== 3. Building BM25 ===")
+    print("\n=== 3. BM25 ===")
 
     bm25 = build_bm25_index(chunks)
+
+    print(f"BM25 documents: {len(bm25.doc_freqs)}")
 
     if len(bm25.doc_freqs) != len(chunks):
         raise RuntimeError("FAIL: BM25 count does not match chunks.")
 
-    print(f"BM25 documents: {len(bm25.doc_freqs)}")
-    print("PASS: BM25 contains all chunks.")
+    print("PASS: BM25 index correct.")
 
 
     test_queries = [
@@ -203,131 +204,142 @@ if __name__ == "__main__":
             "name": "Reference lookup",
             "question": "How do I query a database in Notion-Version 2022-06-28?",
             "expected_intent": "reference",
-            "expected_doc_type": "reference",
-            "expected_version": "2022-06-28",
+            "expected_status": "needs_clarification",
         },
         {
             "name": "Migration path",
             "question": "How do I upgrade from 2021-08-16 to 2022-06-28?",
             "expected_intent": "migration",
-            "expected_doc_type": "migration",
-            "expected_version": None,
-            "expected_from_version": "2021-08-16",
-            "expected_to_version": "2022-06-28",
+            "expected_status": "ready",
         },
         {
             "name": "Breaking changes",
             "question": "What breaks if I move from 2022-06-28 to 2025-09-03?",
             "expected_intent": "migration",
-            "expected_doc_type": "migration",
-            "expected_version": None,
-            "expected_from_version": "2022-06-28",
-            "expected_to_version": "2025-09-03",
+            "expected_status": "ready",
         },
         {
             "name": "Diagnostic",
             "question": "Why did my request start failing with a missing_version error?",
             "expected_intent": "diagnostic",
-            "expected_doc_type": "changelog",
-            "expected_version": None,
+            "expected_status": "needs_clarification",
         },
         {
             "name": "Not found",
             "question": "How do I configure webhook retry backoff in Notion-Version 2021-05-13?",
             "expected_intent": "reference",
-            "expected_doc_type": "reference",
-            "expected_version": "2021-05-13",
+            "expected_status": "not_found",
         },
         {
             "name": "Clarification trigger",
             "question": "How do I query a database?",
-            "expected_intent": None,
-            "expected_doc_type": None,
-            "expected_version": None,
+            "expected_intent": "reference",
+            "expected_status": "needs_clarification",
         },
     ]
 
 
-    print("\n=== 4. Query Understanding → Retrieval Tests ===")
+    print("\n=== 4. QUERY UNDERSTANDING → ROUTER → RETRIEVAL ===")
 
     for test in test_queries:
-        print("\n" + "=" * 70)
-        print(f"TEST: {test['name']}")
+        print("\n" + "=" * 75)
+        print(f"TEST:     {test['name']}")
         print(f"QUESTION: {test['question']}")
-        print("=" * 70)
+        print("=" * 75)
+
+        # ---------------------------------------------------------
+        # Query Understanding
+        # ---------------------------------------------------------
 
         understood = understand_query(test["question"])
 
-        print("\nQuery Understanding:")
+        print("\n[Query Understanding]")
         print(json.dumps(understood, indent=2))
 
         intent = understood.get("intent")
         version = understood.get("version")
 
-        from_version = understood.get("from_version")
-        to_version = understood.get("to_version")
+        print(f"Intent:  {intent}")
+        print(f"Version: {version}")
 
-        print(f"\nIntent:       {intent}")
-        print(f"Version:      {version}")
-        print(f"From version: {from_version}")
-        print(f"To version:   {to_version}")
+        if intent != test["expected_intent"]:
+            print(
+                f"FAIL: Expected intent "
+                f"{test['expected_intent']}, got {intent}"
+            )
+        else:
+            print("PASS: Intent correct.")
 
-        # Validate intent when the test has an expected intent.
-        if test["expected_intent"] is not None:
-            if intent != test["expected_intent"]:
-                print(
-                    f"WARNING: Expected intent "
-                    f"{test['expected_intent']}, got {intent}"
-                )
-            else:
-                print("PASS: Intent is correct.")
+        # ---------------------------------------------------------
+        # Router
+        # ---------------------------------------------------------
 
-        # Migration queries need both versions but don't use
-        # a single version as the retrieval filter.
+        routing = route_query(understood)
+
+        print("\n[Router]")
+        print(json.dumps(routing, indent=2))
+
+        status = routing.get("status")
+
+        print(f"Router status: {status}")
+
+        if status != test["expected_status"]:
+            print(
+                f"FAIL: Expected router status "
+                f"{test['expected_status']}, got {status}"
+            )
+        else:
+            print("PASS: Router status correct.")
+
+        # ---------------------------------------------------------
+        # Do not retrieve if router says clarification/not-found.
+        # ---------------------------------------------------------
+
+        if status != "ready":
+            print("\n[Retrieval]")
+            print("Skipped because router did not return ready.")
+            continue
+
+        # ---------------------------------------------------------
+        # Migration is handled by multi-hop decomposition later.
+        # ---------------------------------------------------------
+
         if intent == "migration":
-            if from_version != test.get("expected_from_version"):
-                print(
-                    f"WARNING: Expected from_version "
-                    f"{test.get('expected_from_version')}, "
-                    f"got {from_version}"
-                )
-
-            if to_version != test.get("expected_to_version"):
-                print(
-                    f"WARNING: Expected to_version "
-                    f"{test.get('expected_to_version')}, "
-                    f"got {to_version}"
-                )
-
-            print("\nMigration query detected.")
-            print("Skipping direct single-version retrieval.")
+            print("\n[Retrieval]")
+            print("Skipped direct retrieval: migration uses multi-hop retrieval.")
             continue
 
-        # Clarification query should not be retrieved.
-        if test["expected_doc_type"] is None:
-            print("\nExpected clarification.")
-            print("Skipping retrieval.")
+        # ---------------------------------------------------------
+        # Normal reference/diagnostic retrieval
+        # ---------------------------------------------------------
+
+        doc_types = routing.get("doc_types", [])
+
+        if not doc_types:
+            print("FAIL: Router returned no doc_types.")
             continue
 
-        doc_type = test["expected_doc_type"]
+        print("\n[Retrieval]")
+        print(f"Doc types: {doc_types}")
 
-        results = hybrid_retrieve(
-            query=test["question"],
-            collection=collection,
-            bm25=bm25,
-            chunks=chunks,
-            doc_type=doc_type,
-            version=version,
-            top_k=5,
-        )
+        all_results = []
 
-        print(f"\nRetrieved {len(results)} results.")
+        for doc_type in doc_types:
+            results = hybrid_retrieve(
+                query=test["question"],
+                collection=collection,
+                bm25=bm25,
+                chunks=chunks,
+                doc_type=doc_type,
+                version=version,
+                top_k=5,
+            )
 
-        if not results:
-            print("WARNING: No results returned.")
-            continue
+            all_results.extend(results)
 
-        for i, result in enumerate(results, start=1):
+        print(f"Results returned: {len(all_results)}")
+
+        for i, result in enumerate(all_results, start=1):
             actual_version = (
                 result.get("version")
                 or result.get("release_date")
@@ -338,32 +350,38 @@ if __name__ == "__main__":
             print(f"version:  {actual_version}")
             print(f"endpoint: {result.get('endpoint', '')}")
             print(f"section:  {result.get('section', '')}")
-            print(f"text:     {result.get('text', '')[:250]}")
+            print(f"text:     {result.get('text', '')[:300]}")
 
-        # Verify hard filters.
-        wrong_type = [
-            r for r in results
-            if r.get("doc_type") != doc_type
+        if not all_results:
+            print("WARNING: Retrieval returned zero results.")
+            continue
+
+        # Verify retrieved document types.
+        wrong_types = [
+            r for r in all_results
+            if r.get("doc_type") not in doc_types
         ]
 
-        if wrong_type:
-            print("FAIL: Wrong doc_type passed the filter.")
+        if wrong_types:
+            print("FAIL: Wrong document type retrieved.")
         else:
-            print("PASS: doc_type filter is correct.")
+            print("PASS: Document type filter correct.")
 
+        # Verify version when one was supplied.
         if version:
-            wrong_version = [
-                r for r in results
+            wrong_versions = [
+                r for r in all_results
                 if (
-                    r.get("version") or r.get("release_date")
+                    r.get("version")
+                    or r.get("release_date")
                 ) != version
             ]
 
-            if wrong_version:
-                print("FAIL: Wrong version passed the filter.")
+            if wrong_versions:
+                print("FAIL: Wrong version retrieved.")
             else:
-                print("PASS: version filter is correct.")
+                print("PASS: Version filter correct.")
 
-    print("\n" + "=" * 70)
-    print("RETRIEVAL TEST SUITE COMPLETE")
-    print("=" * 70)
+    print("\n" + "=" * 75)
+    print("QUERY UNDERSTANDING → ROUTER → RETRIEVAL TEST COMPLETE")
+    print("=" * 75)
