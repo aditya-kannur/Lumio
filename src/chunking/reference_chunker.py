@@ -43,7 +43,7 @@ def chunk_reference_file(filepath):
                 # Reference chunks don't have a version date of their own;
                 # leave it as an empty string so version-filter logic can
                 # still compare without crashing on a missing key.
-                "version": "",
+                "version": "2025-09-03",
                 "text": " ".join(text_parts),
             })
 

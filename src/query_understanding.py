@@ -64,9 +64,29 @@ Current user question:
 
 Interpret the current question in the context of the previous conversation.
 
-If the current question is a follow-up containing only a version,
-such as "2022-06-28", use the previous conversation to determine
-what the user is asking about.
+IMPORTANT VERSION RULES:
+
+1. If the user explicitly mentions a version string such as
+   "2030-01-01", ALWAYS return that exact version string.
+   Do NOT replace it with null just because it is not in Known versions.
+
+2. Known versions are only the versions available in our dataset.
+   An explicitly mentioned version that is not in Known versions
+   must still be returned so the router can classify it as unknown.
+
+3. For reference or diagnostic questions:
+   return the explicitly mentioned version in the "version" field.
+
+4. For migration questions:
+   return explicitly mentioned versions in "from_version"
+   and "to_version", even if either version is unknown.
+
+5. Only return null when the user genuinely did not provide
+   that version.
+
+6. If the current question is a follow-up containing only a version,
+   such as "2022-06-28", use the previous conversation to determine
+   what the user is asking about.
 
 Return JSON only.
 """
