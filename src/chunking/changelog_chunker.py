@@ -68,3 +68,26 @@ def chunk_changelog(text: str, doc_type: str = "changelog"):
             })
 
     return chunks
+
+
+
+# if __name__ == "__main__":
+#     from pathlib import Path
+
+#     changelog_path = Path("data/changelog/changelog.md")
+
+#     text = changelog_path.read_text(encoding="utf-8")
+#     chunks = chunk_changelog(text)
+
+#     print(f"File: {changelog_path}")
+#     print(f"Total chunks: {len(chunks)}")
+#     print()
+
+#     for i, chunk in enumerate(chunks[:10], start=1):
+#         print(f"--- Chunk {i} ---")
+#         print(f"release_date: {chunk['release_date']}")
+#         print(f"doc_type:     {chunk['doc_type']}")
+#         print(f"text length:  {len(chunk['text'])}")
+#         print("text:")
+#         print(chunk["text"])
+#         print()

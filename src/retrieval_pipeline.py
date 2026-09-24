@@ -154,3 +154,216 @@ def hybrid_retrieve(query, collection, bm25, chunks, model=None, doc_type=None, 
     fused_ids = reciprocal_rank_fusion([dense_ranked, bm25_ranked])[:top_k]
     fused_indices = [int(doc_id.split("_")[1]) for doc_id in fused_ids]
     return [chunks[i] for i in fused_indices]
+
+
+
+if __name__ == "__main__":
+    import json
+
+    from src.query_understanding import understand_query
+
+    print("\n=== 1. Loading real chunks ===")
+
+    chunks = load_all_chunks()
+    print(f"Total chunks: {len(chunks)}")
+
+    if not chunks:
+        raise RuntimeError("FAIL: No chunks loaded.")
+
+    print("PASS: Real chunks loaded.")
+
+
+    print("\n=== 2. Building Chroma ===")
+
+    collection = build_chroma_collection(chunks)
+
+    if collection.count() != len(chunks):
+        raise RuntimeError(
+            f"FAIL: Chroma has {collection.count()} documents, "
+            f"expected {len(chunks)}."
+        )
+
+    print(f"Chroma documents: {collection.count()}")
+    print("PASS: Chroma contains all chunks.")
+
+
+    print("\n=== 3. Building BM25 ===")
+
+    bm25 = build_bm25_index(chunks)
+
+    if len(bm25.doc_freqs) != len(chunks):
+        raise RuntimeError("FAIL: BM25 count does not match chunks.")
+
+    print(f"BM25 documents: {len(bm25.doc_freqs)}")
+    print("PASS: BM25 contains all chunks.")
+
+
+    test_queries = [
+        {
+            "name": "Reference lookup",
+            "question": "How do I query a database in Notion-Version 2022-06-28?",
+            "expected_intent": "reference",
+            "expected_doc_type": "reference",
+            "expected_version": "2022-06-28",
+        },
+        {
+            "name": "Migration path",
+            "question": "How do I upgrade from 2021-08-16 to 2022-06-28?",
+            "expected_intent": "migration",
+            "expected_doc_type": "migration",
+            "expected_version": None,
+            "expected_from_version": "2021-08-16",
+            "expected_to_version": "2022-06-28",
+        },
+        {
+            "name": "Breaking changes",
+            "question": "What breaks if I move from 2022-06-28 to 2025-09-03?",
+            "expected_intent": "migration",
+            "expected_doc_type": "migration",
+            "expected_version": None,
+            "expected_from_version": "2022-06-28",
+            "expected_to_version": "2025-09-03",
+        },
+        {
+            "name": "Diagnostic",
+            "question": "Why did my request start failing with a missing_version error?",
+            "expected_intent": "diagnostic",
+            "expected_doc_type": "changelog",
+            "expected_version": None,
+        },
+        {
+            "name": "Not found",
+            "question": "How do I configure webhook retry backoff in Notion-Version 2021-05-13?",
+            "expected_intent": "reference",
+            "expected_doc_type": "reference",
+            "expected_version": "2021-05-13",
+        },
+        {
+            "name": "Clarification trigger",
+            "question": "How do I query a database?",
+            "expected_intent": None,
+            "expected_doc_type": None,
+            "expected_version": None,
+        },
+    ]
+
+
+    print("\n=== 4. Query Understanding → Retrieval Tests ===")
+
+    for test in test_queries:
+        print("\n" + "=" * 70)
+        print(f"TEST: {test['name']}")
+        print(f"QUESTION: {test['question']}")
+        print("=" * 70)
+
+        understood = understand_query(test["question"])
+
+        print("\nQuery Understanding:")
+        print(json.dumps(understood, indent=2))
+
+        intent = understood.get("intent")
+        version = understood.get("version")
+
+        from_version = understood.get("from_version")
+        to_version = understood.get("to_version")
+
+        print(f"\nIntent:       {intent}")
+        print(f"Version:      {version}")
+        print(f"From version: {from_version}")
+        print(f"To version:   {to_version}")
+
+        # Validate intent when the test has an expected intent.
+        if test["expected_intent"] is not None:
+            if intent != test["expected_intent"]:
+                print(
+                    f"WARNING: Expected intent "
+                    f"{test['expected_intent']}, got {intent}"
+                )
+            else:
+                print("PASS: Intent is correct.")
+
+        # Migration queries need both versions but don't use
+        # a single version as the retrieval filter.
+        if intent == "migration":
+            if from_version != test.get("expected_from_version"):
+                print(
+                    f"WARNING: Expected from_version "
+                    f"{test.get('expected_from_version')}, "
+                    f"got {from_version}"
+                )
+
+            if to_version != test.get("expected_to_version"):
+                print(
+                    f"WARNING: Expected to_version "
+                    f"{test.get('expected_to_version')}, "
+                    f"got {to_version}"
+                )
+
+            print("\nMigration query detected.")
+            print("Skipping direct single-version retrieval.")
+            continue
+
+        # Clarification query should not be retrieved.
+        if test["expected_doc_type"] is None:
+            print("\nExpected clarification.")
+            print("Skipping retrieval.")
+            continue
+
+        doc_type = test["expected_doc_type"]
+
+        results = hybrid_retrieve(
+            query=test["question"],
+            collection=collection,
+            bm25=bm25,
+            chunks=chunks,
+            doc_type=doc_type,
+            version=version,
+            top_k=5,
+        )
+
+        print(f"\nRetrieved {len(results)} results.")
+
+        if not results:
+            print("WARNING: No results returned.")
+            continue
+
+        for i, result in enumerate(results, start=1):
+            actual_version = (
+                result.get("version")
+                or result.get("release_date")
+            )
+
+            print(f"\n--- Result {i} ---")
+            print(f"doc_type: {result.get('doc_type')}")
+            print(f"version:  {actual_version}")
+            print(f"endpoint: {result.get('endpoint', '')}")
+            print(f"section:  {result.get('section', '')}")
+            print(f"text:     {result.get('text', '')[:250]}")
+
+        # Verify hard filters.
+        wrong_type = [
+            r for r in results
+            if r.get("doc_type") != doc_type
+        ]
+
+        if wrong_type:
+            print("FAIL: Wrong doc_type passed the filter.")
+        else:
+            print("PASS: doc_type filter is correct.")
+
+        if version:
+            wrong_version = [
+                r for r in results
+                if (
+                    r.get("version") or r.get("release_date")
+                ) != version
+            ]
+
+            if wrong_version:
+                print("FAIL: Wrong version passed the filter.")
+            else:
+                print("PASS: version filter is correct.")
+
+    print("\n" + "=" * 70)
+    print("RETRIEVAL TEST SUITE COMPLETE")
+    print("=" * 70)

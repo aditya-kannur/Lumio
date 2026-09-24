@@ -49,8 +49,33 @@ def chunk_reference_file(filepath):
 
     return chunks
 
-if __name__ == "__main__":
-    chunks = chunk_reference_file("data/reference/openapi.json")
-    print(f"Produced {len(chunks)} chunks from openapi.json")
-    with open("data/chunks_reference.json", "w") as f:
-        json.dump(chunks, f, indent=2)
+# if __name__ == "__main__":
+#     chunks = chunk_reference_file("data/reference/openapi.json")
+
+#     print(f"Total chunks: {len(chunks)}")
+#     print()
+
+#     for i, chunk in enumerate(chunks[:10], start=1):
+#         print(f"--- Chunk {i} ---")
+#         print(f"doc_type: {chunk['doc_type']}")
+#         print(f"endpoint: {chunk['endpoint']}")
+#         print(f"method:   {chunk['method']}")
+#         print(f"tags:     {chunk['tags']}")
+#         print(f"summary:  {chunk['summary']}")
+#         print(f"version:  {chunk['version']}")
+#         print(f"text:     {chunk['text']}")
+#         print()
+
+#     with open(
+#         "data/chunks_reference.json",
+#         "w",
+#         encoding="utf-8",
+#     ) as f:
+#         json.dump(
+#             chunks,
+#             f,
+#             indent=2,
+#             ensure_ascii=False,
+#         )
+
+#     print(f"Saved: data/chunks_reference.json")

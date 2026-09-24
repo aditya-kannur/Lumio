@@ -44,3 +44,48 @@ if __name__ == "__main__":
     print(f"Produced {len(all_chunks)} chunks from {len(os.listdir(data_dir))} files")
     with open("data/chunks_migration.json", "w") as f:
         json.dump(all_chunks, f, indent=2)
+
+
+# if __name__ == "__main__":
+#     import json
+
+#     data_dir = "data/migrations"
+#     all_chunks = []
+
+#     files = sorted(
+#         filename
+#         for filename in os.listdir(data_dir)
+#         if filename.endswith(".md")
+#     )
+
+#     for filename in files:
+#         filepath = os.path.join(data_dir, filename)
+#         chunks = chunk_migration_file(filepath)
+
+#         print(f"\n=== {filename} ===")
+#         print(f"Version: {extract_version_from_filename(filename)}")
+#         print(f"Chunks: {len(chunks)}")
+
+#         for i, chunk in enumerate(chunks, start=1):
+#             print(f"\n--- Chunk {i} ---")
+#             print(f"section:  {chunk['section']}")
+#             print(f"version:  {chunk['version']}")
+#             print(f"breaking: {chunk['breaking']}")
+#             print(f"text length: {len(chunk['text'])}")
+#             print("text:")
+#             print(chunk["text"][:500])
+
+#             if len(chunk["text"]) > 500:
+#                 print("...")
+
+#         all_chunks.extend(chunks)
+
+#     print("\n==============================")
+#     print(f"Migration files: {len(files)}")
+#     print(f"Total chunks:   {len(all_chunks)}")
+#     print("==============================")
+
+#     with open("data/chunks_migration.json", "w", encoding="utf-8") as f:
+#         json.dump(all_chunks, f, indent=2, ensure_ascii=False)
+
+#     print("\nSaved: data/chunks_migration.json")

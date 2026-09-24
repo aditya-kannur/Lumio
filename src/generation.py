@@ -40,3 +40,33 @@ def generate_answer(question, chunks):
     answer_text = response.text.strip()
     citations = [build_citation(c) for c in chunks]
     return {"answer": answer_text, "citations": citations}
+
+
+if __name__ == "__main__":
+    test_chunks = [
+        {
+            "doc_type": "reference",
+            "endpoint": "/v1/pages",
+            "method": "get",
+            "summary": "Retrieve a page",
+            "version": "2025-09-03",
+            "text": "GET /v1/pages — Retrieve a page. Parameters: page_id.",
+        }
+    ]
+
+    question = "How do I retrieve a page?"
+
+    result = generate_answer(question, test_chunks)
+
+    print("=== Generated Answer ===")
+    print(result["answer"])
+
+    print("\n=== Citations ===")
+    for citation in result["citations"]:
+        print(citation)
+
+    print("\n=== Test Result ===")
+    if result["answer"] and result["citations"]:
+        print("PASS: generation produced an answer and citation.")
+    else:
+        print("FAIL: generation did not produce the expected output.")
