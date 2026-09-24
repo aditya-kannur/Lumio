@@ -1,0 +1,68 @@
+[
+  {
+    "id": "ref-01",
+    "type": "reference",
+    "question": "How do I query a database in Notion-Version 2022-06-28?",
+    "version": "2022-06-28",
+    "expected_doc_type": "reference",
+    "expected_behavior": "Answers from the reference for 2022-06-28 only, with a citation."
+  },
+  {
+    "id": "ref-02",
+    "type": "reference",
+    "question": "What does the retrieve a page property item endpoint return in 2025-09-03?",
+    "version": "2025-09-03",
+    "expected_doc_type": "reference",
+    "expected_behavior": "Answers from the reference for 2025-09-03 only, with a citation."
+  },
+  {
+    "id": "diag-01",
+    "type": "diagnostic",
+    "question": "Why is my database query returning empty property values when it worked yesterday?",
+    "version": "2022-06-28",
+    "expected_doc_type": "changelog",
+    "expected_behavior": "Identifies the documented behaviour change and cites the changelog entry alongside the reference."
+  },
+  {
+    "id": "diag-02",
+    "type": "diagnostic",
+    "question": "Why did my request start failing with a missing_version error?",
+    "version": "2021-05-13",
+    "expected_doc_type": "changelog",
+    "expected_behavior": "Traces the failure to the version-header requirement and cites its changelog entry."
+  },
+  {
+    "id": "mig-01",
+    "type": "migration",
+    "question": "How do I upgrade from 2021-08-16 to 2022-06-28?",
+    "from_version": "2021-08-16",
+    "to_version": "2022-06-28",
+    "expected_doc_type": "migration",
+    "expected_behavior": "Two hops via 2022-02-22, in order, with a citation for each change."
+  },
+  {
+    "id": "mig-02",
+    "type": "migration",
+    "question": "What breaks if I move from 2022-06-28 to 2025-09-03?",
+    "from_version": "2022-06-28",
+    "to_version": "2025-09-03",
+    "expected_doc_type": "migration",
+    "expected_behavior": "Single hop, breaking changes listed and cited."
+  },
+  {
+    "id": "clarify-01",
+    "type": "missing_version",
+    "question": "How do I query a database?",
+    "version": null,
+    "expected_doc_type": "reference",
+    "expected_behavior": "Asks which version the developer is on instead of assuming the latest."
+  },
+  {
+    "id": "notfound-01",
+    "type": "not_found",
+    "question": "How do I configure webhook retry backoff in Notion-Version 2021-05-13?",
+    "version": "2021-05-13",
+    "expected_doc_type": "reference",
+    "expected_behavior": "Responds 'Not found in docs for this version.' after the retry cap, with no general-knowledge fallback."
+  }
+]

@@ -1,0 +1,1128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Interactive UI prototype for VersionQuery — a version-aware Q&A assistant over the Notion API documentation.">
+<title>VersionQuery Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    --paper: #F1F4F4;
+    --surface: #FFFFFF;
+    --surface-2: #E8EDED;
+    --ink: #0E1A1D;
+    --ink-2: #3C4A4E;
+    --ink-3: #6A7A7E;
+    --line: #D2DBDB;
+    --line-soft: #E2E9E9;
+    --accent: #0C6A6A;
+    --accent-ink: #08514F;
+    --accent-soft: #DCEBE9;
+    --breaking: #B8442C;
+    --breaking-soft: #F6E2DC;
+    --ok: #2C7A4E;
+    --warn: #8C6210;
+    --shadow: 14 26 29;
+
+    --f-display: "Newsreader", Georgia, "Times New Roman", serif;
+    --f-ui: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+    --r: 3px;
+    --maxw: 1320px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #0B1214;
+      --surface: #121C1F;
+      --surface-2: #18262A;
+      --ink: #E7EEEE;
+      --ink-2: #AEC0C1;
+      --ink-3: #7C9092;
+      --line: #24373A;
+      --line-soft: #1B2A2D;
+      --accent: #4FB3AC;
+      --accent-ink: #82D2CA;
+      --accent-soft: #10312F;
+      --breaking: #E0785C;
+      --breaking-soft: #381D16;
+      --ok: #5CBB84;
+      --warn: #CE9E3E;
+      --shadow: 0 0 0;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #0B1214;
+    --surface: #121C1F;
+    --surface-2: #18262A;
+    --ink: #E7EEEE;
+    --ink-2: #AEC0C1;
+    --ink-3: #7C9092;
+    --line: #24373A;
+    --line-soft: #1B2A2D;
+    --accent: #4FB3AC;
+    --accent-ink: #82D2CA;
+    --accent-soft: #10312F;
+    --breaking: #E0785C;
+    --breaking-soft: #381D16;
+    --ok: #5CBB84;
+    --warn: #CE9E3E;
+    --shadow: 0 0 0;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-ui);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .mono { font-family: var(--f-mono); font-variant-ligatures: none; }
+
+  .wrap {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: 0 24px 64px;
+  }
+
+  /* ---------- masthead ---------- */
+
+  .masthead {
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .masthead-inner {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: 20px 24px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .brand h1 {
+    font-family: var(--f-display);
+    font-weight: 600;
+    font-size: 30px;
+    letter-spacing: -0.015em;
+    margin: 0;
+    line-height: 1;
+  }
+  .brand h1 em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--accent);
+  }
+  .brand .sub {
+    font-size: 13px;
+    color: var(--ink-3);
+    max-width: 46ch;
+  }
+  .stamp {
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+    background: var(--accent-soft);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    padding: 5px 9px;
+    border-radius: var(--r);
+    white-space: nowrap;
+  }
+
+  /* ---------- scenario picker ---------- */
+
+  .scenarios {
+    margin: 28px 0 20px;
+  }
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0 0 10px;
+  }
+  .scenario-row {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .scenario {
+    flex: 1 1 0;
+    min-width: 190px;
+    text-align: left;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    padding: 12px 14px;
+    cursor: pointer;
+    font-family: var(--f-ui);
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: border-color .15s ease, background .15s ease, transform .15s ease;
+  }
+  .scenario:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .scenario:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .scenario[aria-selected="true"] {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .scenario .kind {
+    font-family: var(--f-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+  }
+  .scenario[aria-selected="true"] .kind { color: var(--accent-ink); }
+  .scenario .label { font-size: 13.5px; font-weight: 500; line-height: 1.35; }
+  .scenario .note { font-size: 11.5px; color: var(--ink-3); line-height: 1.4; }
+
+  /* ---------- app shell ---------- */
+
+  .shell {
+    display: grid;
+    grid-template-columns: 232px minmax(0, 1fr) 316px;
+    gap: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    background: var(--surface);
+    overflow: hidden;
+    min-height: 640px;
+  }
+  .col { min-width: 0; display: flex; flex-direction: column; }
+  .col + .col { border-left: 1px solid var(--line); }
+
+  .col-head {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface-2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .col-head h2 {
+    margin: 0;
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+  }
+  .col-body { padding: 16px; overflow-y: auto; flex: 1; }
+
+  /* ---------- version rail ---------- */
+
+  .rail-group + .rail-group { margin-top: 22px; }
+  .rail-label {
+    font-family: var(--f-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 9px;
+  }
+
+  .timeline { list-style: none; margin: 0; padding: 0 0 0 16px; position: relative; }
+  .timeline::before {
+    content: "";
+    position: absolute;
+    left: 4px; top: 8px; bottom: 8px;
+    width: 1px;
+    background: var(--line);
+  }
+  .timeline li { position: relative; padding: 5px 0; }
+  .timeline li::before {
+    content: "";
+    position: absolute;
+    left: -16px; top: 13px;
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1.5px solid var(--line);
+  }
+  .timeline li.has-ref::before { border-color: var(--accent); background: var(--accent); }
+  .timeline li.active::before {
+    border-color: var(--accent);
+    background: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-soft);
+  }
+  .v-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .v-str {
+    font-family: var(--f-mono);
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-2);
+  }
+  .timeline li.active .v-str { color: var(--ink); font-weight: 600; }
+  .timeline li.dim .v-str { opacity: .5; }
+  .v-tag {
+    font-family: var(--f-mono);
+    font-size: 9.5px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+  }
+  .hop-tag {
+    font-family: var(--f-mono);
+    font-size: 9.5px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--breaking);
+    font-weight: 600;
+  }
+
+  .legend { font-size: 11.5px; color: var(--ink-3); line-height: 1.5; }
+  .legend .dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+  .legend .dot.hollow { background: var(--surface); border: 1.5px solid var(--line); }
+
+  .filter-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+  .filter-list li {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 12.5px;
+    color: var(--ink-3);
+    padding: 4px 7px;
+    border-radius: var(--r);
+    border: 1px solid transparent;
+  }
+  .filter-list li.on {
+    color: var(--ink);
+    background: var(--accent-soft);
+    border-color: color-mix(in srgb, var(--accent) 28%, transparent);
+  }
+  .filter-list .count {
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-3);
+  }
+  .filter-list li.on .count { color: var(--accent-ink); font-weight: 600; }
+
+  /* ---------- transcript ---------- */
+
+  .transcript { display: flex; flex-direction: column; gap: 18px; }
+
+  .turn-user {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .who {
+    font-family: var(--f-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    padding-top: 4px;
+    white-space: nowrap;
+    width: 46px;
+    flex-shrink: 0;
+  }
+  .bubble {
+    background: var(--surface-2);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--r);
+    padding: 10px 13px;
+    font-size: 14.5px;
+    color: var(--ink);
+  }
+
+  .answer {
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .answer-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--line-soft);
+    background: var(--surface-2);
+  }
+  .chip {
+    font-family: var(--f-mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    padding: 3px 7px;
+    border-radius: var(--r);
+    border: 1px solid var(--line);
+    color: var(--ink-2);
+    background: var(--surface);
+    white-space: nowrap;
+  }
+  .chip.v { color: var(--accent-ink); border-color: color-mix(in srgb, var(--accent) 35%, transparent); background: var(--accent-soft); font-variant-numeric: tabular-nums; }
+  .chip.ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 35%, transparent); }
+  .chip.brk { color: var(--breaking); border-color: color-mix(in srgb, var(--breaking) 38%, transparent); background: var(--breaking-soft); }
+  .chip.warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
+
+  .answer-body { padding: 14px; }
+  .answer-body p { margin: 0 0 11px; max-width: 68ch; }
+  .answer-body p:last-child { margin-bottom: 0; }
+  .answer-body code {
+    font-family: var(--f-mono);
+    font-size: .88em;
+    background: var(--surface-2);
+    border: 1px solid var(--line-soft);
+    border-radius: 2px;
+    padding: 1px 4px;
+  }
+
+  .steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
+  .hop {
+    border: 1px solid var(--line-soft);
+    border-radius: var(--r);
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .hop-head {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 12px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--line-soft);
+    flex-wrap: wrap;
+  }
+  .hop-head .arrow { color: var(--ink-3); font-family: var(--f-mono); }
+  .hop-head .n {
+    font-family: var(--f-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    color: var(--ink-3);
+    text-transform: uppercase;
+  }
+  .hop ul { list-style: none; margin: 0; padding: 10px 12px; display: flex; flex-direction: column; gap: 9px; }
+  .hop li { display: flex; gap: 9px; align-items: flex-start; font-size: 14px; max-width: 66ch; }
+  .sev {
+    flex-shrink: 0;
+    margin-top: 5px;
+    width: 3px;
+    align-self: stretch;
+    border-radius: 2px;
+    background: var(--line);
+  }
+  .hop li.breaking .sev { background: var(--breaking); }
+
+  .cites {
+    border-top: 1px solid var(--line-soft);
+    padding: 11px 14px;
+    background: color-mix(in srgb, var(--surface-2) 55%, transparent);
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .cites-label {
+    font-family: var(--f-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .cite {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 10px;
+    align-items: baseline;
+    font-size: 12.5px;
+    padding: 6px 9px;
+    background: var(--surface);
+    border: 1px solid var(--line-soft);
+    border-left: 2px solid var(--accent);
+    border-radius: var(--r);
+  }
+  .cite .doc { font-weight: 500; color: var(--ink); }
+  .cite .sec { color: var(--ink-2); font-family: var(--f-mono); font-size: 11.5px; }
+  .cite .ver { font-family: var(--f-mono); font-size: 11.5px; color: var(--accent-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .clarify {
+    border: 1px solid color-mix(in srgb, var(--warn) 38%, transparent);
+    background: color-mix(in srgb, var(--warn) 8%, var(--surface));
+    border-radius: var(--r);
+    padding: 14px;
+  }
+  .clarify p { margin: 0 0 11px; font-size: 14.5px; max-width: 62ch; }
+  .vpick { display: flex; gap: 7px; flex-wrap: wrap; }
+  .vbtn {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    padding: 5px 9px;
+    border-radius: var(--r);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink-2);
+    cursor: pointer;
+    transition: border-color .15s ease, color .15s ease;
+  }
+  .vbtn:hover { border-color: var(--accent); color: var(--accent-ink); }
+  .vbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .notfound {
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--breaking);
+    border-radius: var(--r);
+    padding: 14px;
+    background: var(--surface);
+  }
+  .notfound .headline {
+    font-family: var(--f-display);
+    font-size: 21px;
+    font-weight: 500;
+    letter-spacing: -.01em;
+    margin: 0 0 8px;
+    color: var(--ink);
+  }
+  .notfound p { margin: 0 0 9px; font-size: 14px; color: var(--ink-2); max-width: 64ch; }
+  .notfound p:last-child { margin-bottom: 0; }
+
+  /* ---------- pipeline trace ---------- */
+
+  .trace { list-style: none; margin: 0; padding: 0 0 0 18px; position: relative; }
+  .trace::before {
+    content: "";
+    position: absolute;
+    left: 5px; top: 10px; bottom: 10px;
+    width: 1px;
+    background: var(--line);
+  }
+  .stage { position: relative; padding: 0 0 16px; }
+  .stage::before {
+    content: "";
+    position: absolute;
+    left: -18px; top: 5px;
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1.5px solid var(--line);
+    z-index: 1;
+  }
+  .stage.pass::before { background: var(--accent); border-color: var(--accent); }
+  .stage.retry::before { background: var(--warn); border-color: var(--warn); }
+  .stage.fail::before { background: var(--breaking); border-color: var(--breaking); }
+  .stage.skip { opacity: .45; }
+
+  .stage .name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -.005em;
+  }
+  .stage .detail {
+    font-size: 12px;
+    color: var(--ink-3);
+    margin-top: 2px;
+    line-height: 1.45;
+  }
+  .kv {
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .kv div {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-family: var(--f-mono);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-2);
+    padding: 2px 0;
+    border-bottom: 1px dotted var(--line-soft);
+  }
+  .kv div span:first-child { color: var(--ink-3); }
+  .kv .hi { color: var(--accent-ink); font-weight: 600; }
+  .kv .bad { color: var(--breaking); font-weight: 600; }
+
+  .verdicts { display: flex; flex-direction: column; gap: 4px; margin-top: 7px; }
+  .verdict {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11.5px;
+    color: var(--ink-2);
+  }
+  .verdict .mark {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    font-weight: 600;
+    width: 13px;
+    text-align: center;
+    color: var(--ok);
+  }
+  .verdict.no .mark { color: var(--breaking); }
+
+  .latency {
+    margin-top: 4px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--f-mono);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-3);
+  }
+
+  /* ---------- reveal ---------- */
+
+  .reveal { opacity: 0; transform: translateY(5px); animation: rise .32s ease forwards; }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { animation: none; opacity: 1; transform: none; }
+    .scenario:hover { transform: none; }
+  }
+
+  /* ---------- footer ---------- */
+
+  .foot {
+    margin-top: 22px;
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--ink-3);
+  }
+  .foot .principle {
+    font-family: var(--f-display);
+    font-style: italic;
+    font-size: 15px;
+    color: var(--ink-2);
+    max-width: 54ch;
+  }
+
+  @media (max-width: 1100px) {
+    .shell { grid-template-columns: 1fr; min-height: 0; }
+    .col + .col { border-left: none; border-top: 1px solid var(--line); }
+    .col-body { max-height: none; }
+  }
+  @media (max-width: 620px) {
+    .wrap { padding: 0 14px 44px; }
+    .masthead-inner { padding: 16px 14px; }
+    .brand h1 { font-size: 24px; }
+    .scenario { min-width: 165px; }
+  }
+</style>
+
+</head>
+<body>
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="brand">
+      <h1>Version<em>Query</em></h1>
+      <span class="sub">Version-aware Q&amp;A over the Notion API documentation — every answer filtered to one API version and traceable to its source.</span>
+    </div>
+    <span class="stamp">UI Mock · Sprint Demo</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section class="scenarios">
+    <p class="eyebrow">Pick a scenario to replay</p>
+    <div class="scenario-row" role="tablist" aria-label="Demo scenarios"></div>
+  </section>
+
+  <main class="shell">
+    <section class="col" style="max-width:100%">
+      <div class="col-head"><h2>Corpus</h2></div>
+      <div class="col-body">
+        <div class="rail-group">
+          <p class="rail-label">API versions</p>
+          <ul class="timeline" id="timeline"></ul>
+        </div>
+        <div class="rail-group">
+          <p class="rail-label">Doc type routing</p>
+          <ul class="filter-list" id="doctypes"></ul>
+        </div>
+        <div class="rail-group">
+          <p class="legend">
+            <span class="dot"></span>Full API reference indexed<br>
+            <span class="dot hollow"></span>Changelog &amp; migration guide only
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="col">
+      <div class="col-head">
+        <h2>Session</h2>
+        <span class="chip" id="intent-chip">—</span>
+      </div>
+      <div class="col-body">
+        <div class="transcript" id="transcript"></div>
+      </div>
+    </section>
+
+    <section class="col">
+      <div class="col-head"><h2>Pipeline trace</h2></div>
+      <div class="col-body">
+        <ul class="trace" id="trace"></ul>
+        <div class="latency"><span id="lat-label">Total</span><span id="lat-val">—</span></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="foot">
+    <p class="principle">If the system cannot ground an answer in the correct version of the vendor's documentation, it does not answer.</p>
+    <p>Prototype only — responses are pre-scripted from the real Notion dataset. No live model calls.</p>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var VERSIONS = ["2021-05-13", "2021-08-16", "2022-02-22", "2022-06-28", "2025-09-03", "2026-03-11"];
+  var REF_AVAILABLE = ["2025-09-03", "2026-03-11"];
+
+  var SCENARIOS = [
+    {
+      id: "reference",
+      kind: "Reference",
+      label: "How do I query a database in 2022-06-28?",
+      note: "Happy path — hard version filter, single citation set",
+      intent: "intent: reference",
+      question: "How do I query a database in Notion-Version 2022-06-28?",
+      active: ["2022-06-28"],
+      doctypes: { reference: true, changelog: false, migration: false },
+      counts: { reference: 212, changelog: 0, migration: 0 },
+      latency: "3.1s",
+      answer: {
+        head: [
+          { t: "2022-06-28", c: "v" },
+          { t: "Grounded", c: "ok" },
+          { t: "5 chunks used", c: "" }
+        ],
+        html:
+          '<p>Send <code>POST /v1/databases/{database_id}/query</code> with the header <code>Notion-Version: 2022-06-28</code>. Put <code>filter</code> and <code>sorts</code> in the JSON body; paginate with <code>start_cursor</code> and <code>page_size</code>.</p>' +
+          '<p>One behaviour is specific to this version: the page objects returned by the query no longer carry property <em>values</em>. Each entry in <code>properties</code> contains only the property <code>id</code>. To read a value, call the retrieve-a-page-property-item endpoint with that id.</p>' +
+          '<p>If you are reading this against code written for <code>2022-02-22</code> or earlier, that is the change most likely to break it.</p>'
+      },
+      cites: [
+        { doc: "API Reference", sec: "Query a database", ver: "2022-06-28" },
+        { doc: "API Reference", sec: "Retrieve a page property item", ver: "2022-06-28" },
+        { doc: "Upgrade Guide", sec: "Page properties must be retrieved using the page properties endpoint", ver: "2022-06-28" }
+      ],
+      trace: [
+        { name: "Query understanding", state: "pass", kv: [["intent", "reference", "hi"], ["version", "2022-06-28", "hi"], ["doc_type", "reference", ""]] },
+        { name: "Route & hard filter", state: "pass", detail: "Version and doc-type applied before scoring.", kv: [["corpus", "1,284", ""], ["after filter", "212", "hi"]] },
+        { name: "Hybrid retrieval", state: "pass", detail: "Dense + BM25 fused with RRF.", kv: [["dense top-k", "20", ""], ["bm25 top-k", "20", ""], ["after RRF", "8", "hi"]] },
+        { name: "Document grading", state: "pass", verdicts: [["Relevant to question", true], ["Version matches request", true], ["Doc type appropriate", true]], kv: [["passed", "5 / 8", "hi"]] },
+        { name: "Generate", state: "pass", detail: "Answer written strictly from the 5 graded chunks." },
+        { name: "Verify & cite", state: "pass", verdicts: [["Every claim supported", true], ["No version mixing", true], ["Citations resolve", true]] }
+      ]
+    },
+
+    {
+      id: "clarify",
+      kind: "Clarification",
+      label: "How do I query a database?",
+      note: "No version given — the system asks instead of assuming latest",
+      intent: "intent: reference · version: null",
+      question: "How do I query a database?",
+      active: [],
+      doctypes: { reference: true, changelog: false, migration: false },
+      counts: { reference: 0, changelog: 0, migration: 0 },
+      latency: "0.4s",
+      clarify: {
+        text: "This answer depends on which API version you are calling. Query-a-database changed in 2022-02-22, 2022-06-28 and again in 2025-09-03, so there is no single correct answer. Which version are you on?",
+        options: VERSIONS
+      },
+      trace: [
+        { name: "Query understanding", state: "retry", detail: "Question is version-dependent but no version was supplied.", kv: [["intent", "reference", "hi"], ["version", "not found", "bad"]] },
+        { name: "Route & hard filter", state: "skip", detail: "Halted — no version to filter on." },
+        { name: "Hybrid retrieval", state: "skip", detail: "Not run." },
+        { name: "Document grading", state: "skip", detail: "Not run." },
+        { name: "Generate", state: "skip", detail: "Not run. Defaulting to the latest version is disallowed." },
+        { name: "Ask developer", state: "pass", detail: "Clarifying question returned. Retrieval resumes once a version is chosen." }
+      ]
+    },
+
+    {
+      id: "diagnostic",
+      kind: "Diagnostic",
+      label: "Why is my query returning empty results?",
+      note: "Parallel changelog + reference search, synthesized cause",
+      intent: "intent: diagnostic",
+      question: "Why is my database query returning empty property values when it worked yesterday?",
+      active: ["2022-06-28"],
+      doctypes: { reference: true, changelog: true, migration: false },
+      counts: { reference: 212, changelog: 96, migration: 0 },
+      latency: "4.6s",
+      answer: {
+        head: [
+          { t: "2022-06-28", c: "v" },
+          { t: "Grounded", c: "ok" },
+          { t: "Cause identified", c: "" }
+        ],
+        html:
+          '<p>The values are not missing — they moved. In <code>2022-06-28</code> the <code>type</code> and value fields were removed from the <code>properties</code> object returned by the page, query-database and search endpoints. Each property now returns its <code>id</code> only.</p>' +
+          '<p>Notion shipped this because returning every property value inline timed out on large databases; since March 2022 those inline values had already been documented as inaccurate for pages with more than 25 mentions.</p>' +
+          '<p>Nothing changed on your side yesterday unless the <code>Notion-Version</code> header changed. Read each value through the retrieve-a-page-property-item endpoint using the returned property id.</p>' +
+          '<p class="mono" style="font-size:12px;color:var(--ink-3)">Related: in <code>2021-08-16</code>, empty database properties began returning <code>null</code> rather than being omitted — a different cause with the same symptom.</p>'
+      },
+      cites: [
+        { doc: "Changelog", sec: "Releasing Notion-Version 2022-06-28", ver: "2022-06-28" },
+        { doc: "API Reference", sec: "Query a database", ver: "2022-06-28" },
+        { doc: "Upgrade Guide", sec: "Empty database properties are now returned as null", ver: "2021-08-16" }
+      ],
+      trace: [
+        { name: "Query understanding", state: "pass", kv: [["intent", "diagnostic", "hi"], ["version", "2022-06-28", "hi"], ["doc_type", "changelog + reference", ""]] },
+        { name: "Route & hard filter", state: "pass", detail: "Two branches searched in parallel.", kv: [["changelog", "96", ""], ["reference", "212", ""]] },
+        { name: "Hybrid retrieval", state: "pass", detail: "Dense + BM25 fused per branch.", kv: [["after RRF", "11", "hi"]] },
+        { name: "Document grading", state: "pass", verdicts: [["Describes a behaviour change", true], ["Version matches request", true], ["Doc type appropriate", true]], kv: [["passed", "6 / 11", "hi"]] },
+        { name: "Generate", state: "pass", detail: "Changelog entry cross-referenced against reference behaviour." },
+        { name: "Verify & cite", state: "pass", verdicts: [["Every claim supported", true], ["No version mixing", true], ["Citations resolve", true]] }
+      ]
+    },
+
+    {
+      id: "migration",
+      kind: "Migration",
+      label: "Upgrade from 2021-08-16 to 2022-06-28",
+      note: "Multi-hop — one retrieval per version hop, then synthesis",
+      intent: "intent: migration · 2 hops",
+      question: "How do I upgrade from 2021-08-16 to 2022-06-28?",
+      active: ["2021-08-16", "2022-02-22", "2022-06-28"],
+      hops: { "2021-08-16": "from", "2022-02-22": "hop", "2022-06-28": "to" },
+      doctypes: { reference: false, changelog: false, migration: true },
+      counts: { reference: 0, changelog: 0, migration: 74 },
+      latency: "6.8s",
+      answer: {
+        head: [
+          { t: "2021-08-16 → 2022-06-28", c: "v" },
+          { t: "Grounded", c: "ok" },
+          { t: "5 breaking changes", c: "brk" }
+        ],
+        html:
+          '<p>There is no direct jump. <code>2022-02-22</code> sits between your two versions, so the upgrade is two hops and its changes apply even though you never targeted that version. Apply them in order.</p>',
+        hops: [
+          {
+            from: "2021-08-16", to: "2022-02-22", n: "Hop 1",
+            items: [
+              { breaking: true, html: 'The <code>text</code> property on every content block is renamed to <code>rich_text</code>. This touches read and write paths on all block types.' },
+              { breaking: true, html: 'Query-database filters drop <code>phone</code> and <code>text</code>. Rollup filters take <code>rich_text</code> instead of <code>text</code>, and formula filters take <code>string</code> instead of <code>text</code>.' },
+              { breaking: false, html: 'Property list items now carry an explicit <code>type</code> — additive, but worth reading before you switch on shape.' },
+              { breaking: false, html: 'The List Databases endpoint is deprecated. Use search instead.' }
+            ]
+          },
+          {
+            from: "2022-02-22", to: "2022-06-28", n: "Hop 2",
+            items: [
+              { breaking: true, html: 'Page property values must be fetched from the page property item endpoint. <code>properties</code> now returns ids only.' },
+              { breaking: true, html: 'Parents are always the direct parent, and blocks gain a <code>parent</code> field. Code that assumed a parent was the page or database will now see the containing block.' },
+              { breaking: true, html: 'Database relations are typed as <code>single_property</code> or <code>dual_property</code>. Relation payloads need the type set explicitly.' }
+            ]
+          }
+        ]
+      },
+      cites: [
+        { doc: "Upgrade Guide", sec: "The text property has been renamed to rich_text", ver: "2022-02-22" },
+        { doc: "Upgrade Guide", sec: "Query database filter changes", ver: "2022-02-22" },
+        { doc: "Upgrade Guide", sec: "Deprecated the List Databases endpoint", ver: "2022-02-22" },
+        { doc: "Upgrade Guide", sec: "Page properties must be retrieved using the page properties endpoint", ver: "2022-06-28" },
+        { doc: "Upgrade Guide", sec: "Parents are now always direct parents", ver: "2022-06-28" },
+        { doc: "Upgrade Guide", sec: "Database relations have a type", ver: "2022-06-28" }
+      ],
+      trace: [
+        { name: "Query understanding", state: "pass", kv: [["intent", "migration", "hi"], ["from_version", "2021-08-16", "hi"], ["to_version", "2022-06-28", "hi"]] },
+        { name: "Hop planning", state: "pass", detail: "Path built from the known-version list only — no intermediate version is invented.", kv: [["hops", "2", "hi"], ["path", "…→02-22→06-28", ""]] },
+        { name: "Retrieval per hop", state: "pass", detail: "Each hop retrieved independently against its own guide.", kv: [["hop 1 chunks", "9", ""], ["hop 2 chunks", "7", ""]] },
+        { name: "Document grading", state: "pass", verdicts: [["Belongs to this hop", true], ["Version pair matches", true], ["Doc type appropriate", true]], kv: [["passed", "12 / 16", "hi"]] },
+        { name: "Synthesize path", state: "pass", detail: "Hops merged into one ordered sequence; breaking changes flagged." },
+        { name: "Verify & cite", state: "pass", verdicts: [["Every change cited", true], ["Hop order preserved", true], ["No version mixing", true]] }
+      ]
+    },
+
+    {
+      id: "notfound",
+      kind: "Honest failure",
+      label: "Webhook retry backoff in 2021-05-13",
+      note: "Two retrieval attempts, then refuses rather than guessing",
+      intent: "intent: reference · retries exhausted",
+      question: "How do I configure webhook retry backoff in Notion-Version 2021-05-13?",
+      active: ["2021-05-13"],
+      doctypes: { reference: true, changelog: true, migration: false },
+      counts: { reference: 0, changelog: 41, migration: 0 },
+      latency: "5.2s",
+      notfound: {
+        headline: "Not found in docs for this version.",
+        body:
+          '<p>Nothing in the <code>2021-05-13</code> documentation covers webhook retry or backoff behaviour. Two retrieval attempts were made, the second with a rewritten query; neither returned a chunk that survived grading.</p>' +
+          '<p>The reason is in the corpus rather than the query: no API reference is indexed for <code>2021-05-13</code>, and webhooks were not documented until later versions. VersionQuery will not answer from a version it was not asked about, and will not fall back to general knowledge.</p>' +
+          '<p>Webhook configuration <em>is</em> documented from <code>2025-09-03</code> onward, if you are able to move versions.</p>'
+      },
+      trace: [
+        { name: "Query understanding", state: "pass", kv: [["intent", "reference", "hi"], ["version", "2021-05-13", "hi"], ["doc_type", "reference", ""]] },
+        { name: "Route & hard filter", state: "fail", detail: "No reference chunks exist for this version.", kv: [["reference", "0", "bad"], ["changelog", "41", ""]] },
+        { name: "Retrieval · attempt 1", state: "fail", detail: "Best candidate graded off-version.", kv: [["after RRF", "6", ""], ["passed grading", "0 / 6", "bad"]] },
+        { name: "Query transform", state: "retry", detail: "Rewritten to \"webhook delivery failure handling\" and retried." },
+        { name: "Retrieval · attempt 2", state: "fail", detail: "Retry cap of 2 attempts reached.", kv: [["after RRF", "4", ""], ["passed grading", "0 / 4", "bad"]] },
+        { name: "Refuse", state: "fail", verdicts: [["Grounding established", false], ["General knowledge used", false], ["Honest failure returned", true]] }
+      ]
+    }
+  ];
+
+  var $ = function (s) { return document.querySelector(s); };
+  var current = SCENARIOS[0];
+  var revealStep = 0;
+
+  function el(tag, cls, html) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (html != null) n.innerHTML = html;
+    return n;
+  }
+
+  function reveal(node, i) {
+    node.classList.add("reveal");
+    node.style.animationDelay = (i * 55) + "ms";
+    return node;
+  }
+
+  /* ---- scenario picker ---- */
+
+  function buildPicker() {
+    var row = $(".scenario-row");
+    SCENARIOS.forEach(function (s) {
+      var b = el("button", "scenario");
+      b.type = "button";
+      b.setAttribute("role", "tab");
+      b.setAttribute("aria-selected", s === current ? "true" : "false");
+      b.appendChild(el("span", "kind", s.kind));
+      b.appendChild(el("span", "label", s.label));
+      b.appendChild(el("span", "note", s.note));
+      b.addEventListener("click", function () { select(s); });
+      row.appendChild(b);
+    });
+  }
+
+  function syncPicker() {
+    var btns = document.querySelectorAll(".scenario");
+    SCENARIOS.forEach(function (s, i) {
+      btns[i].setAttribute("aria-selected", s === current ? "true" : "false");
+    });
+  }
+
+  /* ---- left rail ---- */
+
+  function renderRail() {
+    var tl = $("#timeline");
+    tl.innerHTML = "";
+    VERSIONS.forEach(function (v) {
+      var li = el("li");
+      var isActive = current.active.indexOf(v) !== -1;
+      if (REF_AVAILABLE.indexOf(v) !== -1) li.classList.add("has-ref");
+      if (isActive) li.classList.add("active");
+      else if (current.active.length) li.classList.add("dim");
+
+      var row = el("div", "v-row");
+      row.appendChild(el("span", "v-str", v));
+
+      var hop = current.hops && current.hops[v];
+      if (hop === "from") row.appendChild(el("span", "hop-tag", "from"));
+      else if (hop === "to") row.appendChild(el("span", "hop-tag", "to"));
+      else if (hop === "hop") row.appendChild(el("span", "hop-tag", "hop"));
+      else if (REF_AVAILABLE.indexOf(v) !== -1) row.appendChild(el("span", "v-tag", "ref"));
+
+      li.appendChild(row);
+      tl.appendChild(li);
+    });
+
+    var dt = $("#doctypes");
+    dt.innerHTML = "";
+    ["reference", "changelog", "migration"].forEach(function (k) {
+      var li = el("li", current.doctypes[k] ? "on" : "");
+      li.appendChild(el("span", null, k));
+      var c = current.counts[k];
+      li.appendChild(el("span", "count", c ? c + " chunks" : "filtered out"));
+      dt.appendChild(li);
+    });
+  }
+
+  /* ---- transcript ---- */
+
+  function citeBlock(cites) {
+    var box = el("div", "cites");
+    box.appendChild(el("p", "cites-label", "Citations · " + cites.length));
+    cites.forEach(function (c) {
+      var row = el("div", "cite");
+      row.appendChild(el("span", "doc", c.doc));
+      row.appendChild(el("span", "sec", c.sec));
+      row.appendChild(el("span", "ver", c.ver));
+      box.appendChild(row);
+    });
+    return box;
+  }
+
+  function renderTranscript() {
+    var t = $("#transcript");
+    t.innerHTML = "";
+    revealStep = 0;
+
+    var turn = el("div", "turn-user");
+    turn.appendChild(el("span", "who", "You"));
+    turn.appendChild(el("div", "bubble", current.question));
+    t.appendChild(reveal(turn, revealStep++));
+
+    if (current.clarify) {
+      var c = el("div", "clarify");
+      c.appendChild(el("p", null, current.clarify.text));
+      var pick = el("div", "vpick");
+      current.clarify.options.forEach(function (v) {
+        var b = el("button", "vbtn", v);
+        b.type = "button";
+        b.addEventListener("click", function () {
+          select(SCENARIOS[0]);
+        });
+        pick.appendChild(b);
+      });
+      c.appendChild(pick);
+      t.appendChild(reveal(c, revealStep++));
+      return;
+    }
+
+    if (current.notfound) {
+      var nf = el("div", "notfound");
+      nf.appendChild(el("p", "headline", current.notfound.headline));
+      nf.insertAdjacentHTML("beforeend", current.notfound.body);
+      t.appendChild(reveal(nf, revealStep++));
+      return;
+    }
+
+    var a = el("div", "answer");
+    var head = el("div", "answer-head");
+    current.answer.head.forEach(function (h) {
+      head.appendChild(el("span", "chip " + (h.c || ""), h.t));
+    });
+    a.appendChild(head);
+
+    var body = el("div", "answer-body");
+    body.insertAdjacentHTML("beforeend", current.answer.html);
+
+    if (current.answer.hops) {
+      current.answer.hops.forEach(function (h) {
+        var box = el("div", "hop");
+        var hh = el("div", "hop-head");
+        hh.appendChild(el("span", "n", h.n));
+        hh.appendChild(el("span", "chip v", h.from));
+        hh.appendChild(el("span", "arrow", "→"));
+        hh.appendChild(el("span", "chip v", h.to));
+        var brk = h.items.filter(function (i) { return i.breaking; }).length;
+        if (brk) hh.appendChild(el("span", "chip brk", brk + " breaking"));
+        box.appendChild(hh);
+
+        var ul = el("ul");
+        h.items.forEach(function (item) {
+          var li = el("li", item.breaking ? "breaking" : "");
+          li.appendChild(el("span", "sev"));
+          li.appendChild(el("span", null, item.html));
+          ul.appendChild(li);
+        });
+        box.appendChild(ul);
+        body.appendChild(box);
+      });
+    }
+
+    a.appendChild(body);
+    if (current.cites) a.appendChild(citeBlock(current.cites));
+    t.appendChild(reveal(a, revealStep++));
+  }
+
+  /* ---- trace ---- */
+
+  function renderTrace() {
+    var tr = $("#trace");
+    tr.innerHTML = "";
+    current.trace.forEach(function (s, i) {
+      var li = el("li", "stage " + s.state);
+      li.appendChild(el("div", "name", s.name));
+      if (s.detail) li.appendChild(el("div", "detail", s.detail));
+
+      if (s.kv) {
+        var kv = el("div", "kv");
+        s.kv.forEach(function (pair) {
+          var row = el("div");
+          row.appendChild(el("span", null, pair[0]));
+          row.appendChild(el("span", pair[2] || "", pair[1]));
+          kv.appendChild(row);
+        });
+        li.appendChild(kv);
+      }
+
+      if (s.verdicts) {
+        var vs = el("div", "verdicts");
+        s.verdicts.forEach(function (v) {
+          var row = el("div", "verdict" + (v[1] ? "" : " no"));
+          row.appendChild(el("span", "mark", v[1] ? "✓" : "✗"));
+          row.appendChild(el("span", null, v[0]));
+          vs.appendChild(row);
+        });
+        li.appendChild(vs);
+      }
+
+      tr.appendChild(reveal(li, i + 1));
+    });
+
+    $("#lat-val").textContent = current.latency;
+    $("#lat-label").textContent = current.notfound ? "Refused after" : "Answered in";
+  }
+
+  function select(s) {
+    current = s;
+    syncPicker();
+    $("#intent-chip").textContent = s.intent;
+    renderRail();
+    renderTranscript();
+    renderTrace();
+  }
+
+  buildPicker();
+  select(SCENARIOS[0]);
+})();
+</script>
+</body>
+</html>

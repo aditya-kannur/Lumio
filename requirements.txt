@@ -1,0 +1,14 @@
+chromadb
+sentence-transformers
+rank_bm25
+google-genai
+langgraph
+fastapi>=0.141.0
+uvicorn
+streamlit
+requests
+pydantic
+python-dotenv
+numpy
+langchain-groq
+groq

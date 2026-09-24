@@ -1,0 +1,492 @@
+[
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/users/me",
+    "method": "get",
+    "tags": [
+      "Users"
+    ],
+    "summary": "Retrieve your token's bot user",
+    "text": "GET /v1/users/me \u2014 Retrieve your token's bot user."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/users/{user_id}",
+    "method": "get",
+    "tags": [
+      "Users"
+    ],
+    "summary": "Retrieve a user",
+    "text": "GET /v1/users/{user_id} \u2014 Retrieve a user. Parameters: user_id."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/users",
+    "method": "get",
+    "tags": [
+      "Users"
+    ],
+    "summary": "List all users",
+    "text": "GET /v1/users \u2014 List all users. Parameters: start_cursor, page_size."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/pages",
+    "method": "post",
+    "tags": [
+      "Pages"
+    ],
+    "summary": "Create a page",
+    "text": "POST /v1/pages \u2014 Create a page. Parameters: filter_properties. Accepts a request body."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/pages/{page_id}",
+    "method": "get",
+    "tags": [
+      "Pages"
+    ],
+    "summary": "Retrieve a page",
+    "text": "GET /v1/pages/{page_id} \u2014 Retrieve a page. Parameters: page_id, filter_properties."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/pages/{page_id}",
+    "method": "patch",
+    "tags": [
+      "Pages"
+    ],
+    "summary": "Update page",
+    "text": "PATCH /v1/pages/{page_id} \u2014 Update page. Parameters: page_id, filter_properties. Accepts a request body."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/pages/{page_id}/move",
+    "method": "post",
+    "tags": [
+      "Pages"
+    ],
+    "summary": "Move a page",
+    "text": "POST /v1/pages/{page_id}/move \u2014 Move a page. Parameters: page_id. Accepts a request body."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/pages/{page_id}/properties/{property_id}",
+    "method": "get",
+    "tags": [
+      "Pages"
+    ],
+    "summary": "Retrieve a page property item",
+    "text": "GET /v1/pages/{page_id}/properties/{property_id} \u2014 Retrieve a page property item. Parameters: page_id, property_id, start_cursor, page_size."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/pages/{page_id}/markdown",
+    "method": "get",
+    "tags": [
+      "Pages"
+    ],
+    "summary": "Retrieve a page as markdown",
+    "text": "GET /v1/pages/{page_id}/markdown \u2014 Retrieve a page as markdown. Parameters: page_id, include_transcript."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/pages/{page_id}/markdown",
+    "method": "patch",
+    "tags": [
+      "Pages"
+    ],
+    "summary": "Update a page's content as markdown",
+    "text": "PATCH /v1/pages/{page_id}/markdown \u2014 Update a page's content as markdown. Parameters: page_id. Accepts a request body."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/async_tasks/{task_id}",
+    "method": "get",
+    "tags": [
+      "Async tasks"
+    ],
+    "summary": "Retrieve an async task",
+    "text": "GET /v1/async_tasks/{task_id} \u2014 Retrieve an async task. Parameters: task_id."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/blocks/{block_id}",
+    "method": "get",
+    "tags": [
+      "Blocks"
+    ],
+    "summary": "Retrieve a block",
+    "text": "GET /v1/blocks/{block_id} \u2014 Retrieve a block. Parameters: block_id."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/blocks/{block_id}",
+    "method": "patch",
+    "tags": [
+      "Blocks"
+    ],
+    "summary": "Update a block",
+    "text": "PATCH /v1/blocks/{block_id} \u2014 Update a block. Parameters: block_id. Accepts a request body."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/blocks/{block_id}",
+    "method": "delete",
+    "tags": [
+      "Blocks"
+    ],
+    "summary": "Delete a block",
+    "text": "DELETE /v1/blocks/{block_id} \u2014 Delete a block. Parameters: block_id."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/blocks/{block_id}/children",
+    "method": "get",
+    "tags": [
+      "Blocks"
+    ],
+    "summary": "Retrieve block children",
+    "text": "GET /v1/blocks/{block_id}/children \u2014 Retrieve block children. Parameters: block_id, start_cursor, page_size."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/blocks/{block_id}/children",
+    "method": "patch",
+    "tags": [
+      "Blocks"
+    ],
+    "summary": "Append block children",
+    "text": "PATCH /v1/blocks/{block_id}/children \u2014 Append block children. Parameters: block_id. Accepts a request body."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/data_sources/{data_source_id}",
+    "method": "get",
+    "tags": [
+      "Data sources"
+    ],
+    "summary": "Retrieve a data source",
+    "text": "GET /v1/data_sources/{data_source_id} \u2014 Retrieve a data source. Parameters: data_source_id."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/data_sources/{data_source_id}",
+    "method": "patch",
+    "tags": [
+      "Data sources"
+    ],
+    "summary": "Update a data source",
+    "text": "PATCH /v1/data_sources/{data_source_id} \u2014 Update a data source. Parameters: data_source_id. Accepts a request body."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/data_sources/{data_source_id}/query",
+    "method": "post",
+    "tags": [
+      "Data sources"
+    ],
+    "summary": "Query a data source",
+    "text": "POST /v1/data_sources/{data_source_id}/query \u2014 Query a data source. Parameters: data_source_id, filter_properties. Accepts a request body."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/data_sources",
+    "method": "post",
+    "tags": [
+      "Data sources"
+    ],
+    "summary": "Create a data source",
+    "text": "POST /v1/data_sources \u2014 Create a data source. Accepts a request body."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/data_sources/{data_source_id}/templates",
+    "method": "get",
+    "tags": [
+      "Data sources"
+    ],
+    "summary": "List templates in a data source",
+    "text": "GET /v1/data_sources/{data_source_id}/templates \u2014 List templates in a data source. Parameters: data_source_id, name, start_cursor, page_size."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/databases/{database_id}",
+    "method": "get",
+    "tags": [
+      "Databases"
+    ],
+    "summary": "Retrieve a database",
+    "text": "GET /v1/databases/{database_id} \u2014 Retrieve a database. Parameters: database_id."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/databases/{database_id}",
+    "method": "patch",
+    "tags": [
+      "Databases"
+    ],
+    "summary": "Update a database",
+    "text": "PATCH /v1/databases/{database_id} \u2014 Update a database. Parameters: database_id. Accepts a request body."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/databases",
+    "method": "post",
+    "tags": [
+      "Databases"
+    ],
+    "summary": "Create a database",
+    "text": "POST /v1/databases \u2014 Create a database. Accepts a request body."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/search",
+    "method": "post",
+    "tags": [
+      "Search"
+    ],
+    "summary": "Search by title",
+    "text": "POST /v1/search \u2014 Search by title. Accepts a request body."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/comments",
+    "method": "post",
+    "tags": [
+      "Comments"
+    ],
+    "summary": "Create a comment",
+    "text": "POST /v1/comments \u2014 Create a comment. Accepts a request body."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/comments",
+    "method": "get",
+    "tags": [
+      "Comments"
+    ],
+    "summary": "List comments",
+    "text": "GET /v1/comments \u2014 List comments. Parameters: block_id, start_cursor, page_size."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/comments/{comment_id}",
+    "method": "get",
+    "tags": [
+      "Comments"
+    ],
+    "summary": "Retrieve a comment",
+    "text": "GET /v1/comments/{comment_id} \u2014 Retrieve a comment. Parameters: comment_id."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/comments/{comment_id}",
+    "method": "patch",
+    "tags": [
+      "Comments"
+    ],
+    "summary": "Update a comment",
+    "text": "PATCH /v1/comments/{comment_id} \u2014 Update a comment. Parameters: comment_id. Accepts a request body."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/comments/{comment_id}",
+    "method": "delete",
+    "tags": [
+      "Comments"
+    ],
+    "summary": "Delete a comment",
+    "text": "DELETE /v1/comments/{comment_id} \u2014 Delete a comment. Parameters: comment_id."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/file_uploads",
+    "method": "post",
+    "tags": [
+      "File uploads"
+    ],
+    "summary": "Create a file upload",
+    "text": "POST /v1/file_uploads \u2014 Create a file upload. Accepts a request body."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/file_uploads",
+    "method": "get",
+    "tags": [
+      "File uploads"
+    ],
+    "summary": "List file uploads",
+    "text": "GET /v1/file_uploads \u2014 List file uploads. Parameters: status, start_cursor, page_size."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/file_uploads/{file_upload_id}/send",
+    "method": "post",
+    "tags": [
+      "File uploads"
+    ],
+    "summary": "Upload a file",
+    "text": "POST /v1/file_uploads/{file_upload_id}/send \u2014 Upload a file. Parameters: file_upload_id. Accepts a request body."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/file_uploads/{file_upload_id}/complete",
+    "method": "post",
+    "tags": [
+      "File uploads"
+    ],
+    "summary": "Complete a multi-part file upload",
+    "text": "POST /v1/file_uploads/{file_upload_id}/complete \u2014 Complete a multi-part file upload. Parameters: file_upload_id."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/file_uploads/{file_upload_id}",
+    "method": "get",
+    "tags": [
+      "File uploads"
+    ],
+    "summary": "Retrieve a file upload",
+    "text": "GET /v1/file_uploads/{file_upload_id} \u2014 Retrieve a file upload. Parameters: file_upload_id."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/custom_emojis",
+    "method": "get",
+    "tags": [
+      "Custom emojis"
+    ],
+    "summary": "List custom emojis",
+    "text": "GET /v1/custom_emojis \u2014 List custom emojis. Parameters: start_cursor, page_size, name."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/views",
+    "method": "get",
+    "tags": [
+      "Views"
+    ],
+    "summary": "List views",
+    "text": "GET /v1/views \u2014 List views. Parameters: database_id, data_source_id, start_cursor, page_size."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/views",
+    "method": "post",
+    "tags": [
+      "Views"
+    ],
+    "summary": "Create a view",
+    "text": "POST /v1/views \u2014 Create a view. Accepts a request body."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/views/{view_id}",
+    "method": "get",
+    "tags": [
+      "Views"
+    ],
+    "summary": "Retrieve a view",
+    "text": "GET /v1/views/{view_id} \u2014 Retrieve a view. Parameters: view_id."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/views/{view_id}",
+    "method": "patch",
+    "tags": [
+      "Views"
+    ],
+    "summary": "Update a view",
+    "text": "PATCH /v1/views/{view_id} \u2014 Update a view. Parameters: view_id. Accepts a request body."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/views/{view_id}",
+    "method": "delete",
+    "tags": [
+      "Views"
+    ],
+    "summary": "Delete a view",
+    "text": "DELETE /v1/views/{view_id} \u2014 Delete a view. Parameters: view_id."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/views/{view_id}/queries",
+    "method": "post",
+    "tags": [
+      "Views"
+    ],
+    "summary": "Create a view query",
+    "text": "POST /v1/views/{view_id}/queries \u2014 Create a view query. Parameters: view_id. Accepts a request body."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/views/{view_id}/queries/{query_id}",
+    "method": "get",
+    "tags": [
+      "Views"
+    ],
+    "summary": "Get view query results",
+    "text": "GET /v1/views/{view_id}/queries/{query_id} \u2014 Get view query results. Parameters: view_id, query_id, start_cursor, page_size."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/views/{view_id}/queries/{query_id}",
+    "method": "delete",
+    "tags": [
+      "Views"
+    ],
+    "summary": "Delete a view query",
+    "text": "DELETE /v1/views/{view_id}/queries/{query_id} \u2014 Delete a view query. Parameters: view_id, query_id."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/blocks/meeting_notes",
+    "method": "post",
+    "tags": [
+      "Meeting notes"
+    ],
+    "summary": "Create a meeting note",
+    "text": "POST /v1/blocks/meeting_notes \u2014 Create a meeting note. Accepts a request body."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/blocks/meeting_notes/query",
+    "method": "post",
+    "tags": [
+      "Meeting notes"
+    ],
+    "summary": "Query meeting notes",
+    "text": "POST /v1/blocks/meeting_notes/query \u2014 Query meeting notes. Accepts a request body."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/oauth/token",
+    "method": "post",
+    "tags": [
+      "OAuth"
+    ],
+    "summary": "Exchange an authorization code for an access and refresh token",
+    "text": "POST /v1/oauth/token \u2014 Exchange an authorization code for an access and refresh token. Accepts a request body."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/oauth/revoke",
+    "method": "post",
+    "tags": [
+      "OAuth"
+    ],
+    "summary": "Revoke a token",
+    "text": "POST /v1/oauth/revoke \u2014 Revoke a token. Accepts a request body."
+  },
+  {
+    "doc_type": "reference",
+    "endpoint": "/v1/oauth/introspect",
+    "method": "post",
+    "tags": [
+      "OAuth"
+    ],
+    "summary": "Introspect a token",
+    "text": "POST /v1/oauth/introspect \u2014 Introspect a token. Accepts a request body."
+  }
+]
