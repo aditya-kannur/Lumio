@@ -1,53 +1,87 @@
-"""
-Query understanding — classifies intent (reference/diagnostic/migration)
-and extracts version(s) from the developer's question, using Gemini.
-"""
-
-import os
 import json
+import os
 
 from google import genai
-from google.genai import types
-from dotenv import load_dotenv
 
-from src.prompts.system_prompt import SYSTEM_PROMPT
 from src.constants import KNOWN_VERSIONS
+from src.prompts.system_prompt import SYSTEM_PROMPT
 
-load_dotenv()
 
-client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+client = genai.Client(
+    api_key=os.getenv("GEMINI_API_KEY")
+)
 
 MODEL = "gemini-3.5-flash-lite"
 
-def understand_query(user_question: str) -> dict:
+
+def understand_query(question: str, history=None):
     """
-    Returns a dict like:
-      {"intent": "reference", "version": "2022-06-28"}
-      {"intent": "migration", "from_version": "2021-08-16", "to_version": "2022-06-28"}
-      {"intent": "reference", "version": None}
+    Understand the current question using previous conversation context.
+
+    history is expected to be a list like:
+    [
+        {
+            "question": "...",
+            "response": {...}
+        }
+    ]
     """
+
+    history = history or []
+
+    history_text = ""
+
+    if history:
+        history_text = "\n\nPrevious conversation:\n"
+
+        for item in history[-5:]:
+            previous_question = item.get("question", "")
+            previous_response = item.get("response", {})
+
+            history_text += (
+                f"User: {previous_question}\n"
+                f"Assistant: {json.dumps(previous_response)}\n"
+            )
+
+        history_text += (
+            "\nUse this previous conversation only to resolve "
+            "references, missing versions, or follow-up questions. "
+            "The current question takes priority.\n"
+        )
 
     prompt = f"""
 {SYSTEM_PROMPT}
 
-Known versions: {", ".join(KNOWN_VERSIONS)}
+Known versions:
+{json.dumps(KNOWN_VERSIONS)}
 
-Developer question: "{user_question}"
+{history_text}
+
+Current user question:
+{question}
+
+Interpret the current question in the context of the previous conversation.
+
+If the current question is a follow-up containing only a version,
+such as "2022-06-28", use the previous conversation to determine
+what the user is asking about.
+
+Return JSON only.
 """
 
     response = client.models.generate_content(
         model=MODEL,
         contents=prompt,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json"
-        ),
+        config={
+            "response_mime_type": "application/json",
+        },
     )
 
-    raw_text = response.text.strip()
-
     try:
-        return json.loads(raw_text)
-    except json.JSONDecodeError:
+        result = json.loads(response.text)
+    except (json.JSONDecodeError, TypeError) as exc:
         raise ValueError(
-            f"Could not parse model output as JSON: {raw_text}"
-        )
+            f"Invalid JSON returned by query understanding: {response.text}"
+        ) from exc
+
+    return result

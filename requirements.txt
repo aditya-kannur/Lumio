@@ -12,3 +12,4 @@ python-dotenv
 numpy
 langchain-groq
 groq
+pytest
