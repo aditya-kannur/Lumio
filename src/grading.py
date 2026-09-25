@@ -515,18 +515,15 @@ def retrieve_and_grade(
         # --------------------------------------------------------------
 
         if grading["status"] == "found":
-
             return {
                 "status": "found",
-                "chunks": grading[
-                    "selected_chunks"
-                ],
+                "evidence_sufficient": True,
+                "chunks": grading["selected_chunks"],
+                "selected_candidate_ids": grading["selected_candidate_ids"],
                 "attempts": attempt,
                 "original_question": original_question,
                 "search_query": search_query,
-                "grading_reason": grading[
-                    "reason"
-                ],
+                "grading_reason": grading["reason"],
             }
 
         # --------------------------------------------------------------
