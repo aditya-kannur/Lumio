@@ -6,6 +6,7 @@ First run:
 
 Later runs:
     chunks -> existing Chroma index
+             no embedding model loading
              no chunk re-embedding
 
 The cache is invalidated if the chunk content or embedding model changes.
@@ -35,7 +36,6 @@ def _chunks_hash(chunks):
     """
     Create a stable hash of the actual chunk content + metadata.
     """
-
     normalized = []
 
     for chunk in chunks:
@@ -69,6 +69,7 @@ def _load_manifest():
             encoding="utf-8",
         ) as f:
             return json.load(f)
+
     except (OSError, json.JSONDecodeError):
         return None
 
@@ -130,27 +131,30 @@ def get_chroma_collection(chunks):
     Load the persistent Chroma collection.
 
     If the cache is valid:
-        reuse existing embeddings.
+        reuse existing embeddings without loading
+        the SentenceTransformer model.
 
     If the cache is missing/stale:
-        rebuild the collection once.
+        load the embedding model and rebuild
+        the collection once.
     """
 
     print(
         f"  Chroma cache: {CHROMA_PERSIST_DIR}"
     )
 
-    ef = SentenceTransformerEmbeddingFunction(
-        model_name=EMBEDDING_MODEL_NAME
-    )
+    # --------------------------------------------------------------
+    # Create Chroma client WITHOUT loading embedding model
+    # --------------------------------------------------------------
 
     client = chromadb.PersistentClient(
         path=CHROMA_PERSIST_DIR
     )
 
+    # Get existing collection without explicitly
+    # constructing SentenceTransformerEmbeddingFunction.
     collection = client.get_or_create_collection(
-        name=CHROMA_COLLECTION_NAME,
-        embedding_function=ef,
+        name=CHROMA_COLLECTION_NAME
     )
 
     # --------------------------------------------------------------
@@ -166,6 +170,7 @@ def get_chroma_collection(chunks):
             f"{collection.count()} chunks, "
             f"embeddings reused."
         )
+
         return collection
 
     # --------------------------------------------------------------
@@ -174,6 +179,25 @@ def get_chroma_collection(chunks):
 
     print(
         "  Chroma: cache miss or stale index."
+    )
+
+    print(
+        f"  Chroma: loading embedding model "
+        f"{EMBEDDING_MODEL_NAME}..."
+    )
+
+    # IMPORTANT:
+    # The embedding model is created ONLY here.
+    # Therefore cache hits never load model weights.
+    ef = SentenceTransformerEmbeddingFunction(
+        model_name=EMBEDDING_MODEL_NAME
+    )
+
+    # Re-create collection with the embedding function
+    # required for indexing new documents.
+    collection = client.get_or_create_collection(
+        name=CHROMA_COLLECTION_NAME,
+        embedding_function=ef,
     )
 
     print(
@@ -197,7 +221,6 @@ def get_chroma_collection(chunks):
     metadatas = []
 
     for chunk in chunks:
-
         metadata = {
             key: value
             for key, value in chunk.items()
@@ -205,11 +228,7 @@ def get_chroma_collection(chunks):
         }
 
         for key, value in metadata.items():
-
-            if isinstance(
-                value,
-                list,
-            ):
+            if isinstance(value, list):
                 metadata[key] = ", ".join(
                     str(item)
                     for item in value
@@ -229,7 +248,6 @@ def get_chroma_collection(chunks):
         len(chunks),
         batch_size,
     ):
-
         end = min(
             start + batch_size,
             len(chunks),
