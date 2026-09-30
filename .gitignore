@@ -5,3 +5,4 @@ venv/
 .venv/
 data/*.tmp
 data/chroma/
+verify/
