@@ -91,10 +91,21 @@ def ask(req: AskRequest):
                 "message": result.get("message"),
             }
 
-        if status in {"error", "failed"}:
+        if status in {
+            "understanding_error",
+            "routing_error",
+            "retrieval_error",
+            "grading_error",
+            "generation_error",
+            "verification_error",
+            "verification_failed",
+        }:
             return {
                 "type": "error",
-                "message": result.get("message"),
+                "message": result.get(
+                    "message",
+                    "The request could not be completed safely.",
+                ),
             }
 
         return {
@@ -103,12 +114,15 @@ def ask(req: AskRequest):
             "citations": result.get("citations", []),
         }
 
-    except Exception as exc:
+    except Exception:
         traceback.print_exc()
         return JSONResponse(
             status_code=500,
             content={
                 "type": "error",
-                "message": str(exc),
+                "message": (
+                    "The request could not be completed. "
+                    "Please try again."
+                ),
             },
         )

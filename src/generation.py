@@ -146,16 +146,29 @@ def generate_answer(question, graded_evidence):
         chunks_text=chunks_text,
     )
 
-    response = client.models.generate_content(
-        model=MODEL,
-        contents=prompt,
-    )
+    try:
+        response = client.models.generate_content(
+            model=MODEL,
+            contents=prompt,
+        )
+    except Exception:
+        return {
+            "status": "generation_error",
+            "error_type": "llm_service_error",
+            "answer": (
+                "The answer could not be generated because "
+                "the language model service is unavailable."
+            ),
+            "used_chunk_ids": [],
+            "citations": [],
+        }
 
     try:
         result = _parse_generation_response(response.text)
-    except (json.JSONDecodeError, AttributeError):
+    except (json.JSONDecodeError, AttributeError, TypeError):
         return {
-            "status": "not_found",
+            "status": "generation_error",
+            "error_type": "invalid_llm_response",
             "answer": (
                 "The generated response could not be "
                 "validated against the evidence."

@@ -195,28 +195,42 @@ def verify_answer(
             model=MODEL,
             contents=prompt,
         )
-
-        result = _parse_verification_response(
-            response.text
-        )
-
-    except (
-        json.JSONDecodeError,
-        AttributeError,
-        TypeError,
-        ValueError,
-    ) as exc:
+    except Exception:
         return {
             "verified": False,
             "supported": False,
             "version_mixed": False,
             "irrelevant_evidence": False,
             "citation_supported": False,
-            "hallucination": True,
-            "failure_type": "generation_issue",
+            "hallucination": False,
+            "failure_type": "verification_error",
             "confidence": 0.0,
             "reason": (
-                f"Verification response could not be parsed: {exc}"
+                "The verification service is unavailable."
+            ),
+        }
+
+    try:
+        result = _parse_verification_response(
+            response.text
+        )
+    except (
+        json.JSONDecodeError,
+        AttributeError,
+        TypeError,
+        ValueError,
+    ):
+        return {
+            "verified": False,
+            "supported": False,
+            "version_mixed": False,
+            "irrelevant_evidence": False,
+            "citation_supported": False,
+            "hallucination": False,
+            "failure_type": "verification_error",
+            "confidence": 0.0,
+            "reason": (
+                "The verification response could not be validated."
             ),
         }
 
@@ -386,7 +400,11 @@ def generate_verified_answer(
 
     if not verdict["verified"]:
         return {
-            "status": "hallucination_flagged",
+            "status": (
+                "verification_error"
+                if verdict.get("failure_type") == "verification_error"
+                else "verification_failed"
+            ),
             "answer": None,
             "citations": [],
             "used_chunk_ids": generation_result.get(

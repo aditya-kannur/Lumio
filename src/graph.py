@@ -65,11 +65,11 @@ def understand_node(state: PipelineState):
             "Query understanding completed successfully."
         )
 
-    except Exception as exc:
+    except Exception:
         state["status"] = "understanding_error"
         state["message"] = (
-            "Query understanding failed: "
-            f"{exc}"
+            "I couldn't reliably understand the request. "
+            "Please try rephrasing your question."
         )
 
     return state
@@ -121,11 +121,11 @@ def route_node(state: PipelineState):
                 f"{routing_status}"
             )
 
-    except Exception as exc:
+    except Exception:
         state["status"] = "routing_error"
         state["message"] = (
-            "Query routing failed: "
-            f"{exc}"
+            "I couldn't determine which documentation path "
+            "to use for your request."
         )
 
     return state
@@ -278,11 +278,11 @@ def retrieve_node(
             f"{len(state['chunks'])} evidence chunk(s) selected."
         )
 
-    except Exception as exc:
+    except Exception:
         state["status"] = "retrieval_error"
         state["message"] = (
-            "Retrieval or grading failed: "
-            f"{exc}"
+            "I couldn't retrieve or evaluate the relevant "
+            "documentation. Please try again."
         )
 
     return state
@@ -328,11 +328,11 @@ def generate_node(state: PipelineState):
             "Answer generated successfully from graded evidence."
         )
 
-    except Exception as exc:
+    except Exception:
         state["status"] = "generation_error"
         state["message"] = (
-            "Answer generation failed: "
-            f"{exc}"
+            "I couldn't generate an answer from the available "
+            "documentation. Please try again."
         )
 
     return state
@@ -411,11 +411,11 @@ def verify_node(state: PipelineState):
             or "Generated answer failed evidence verification."
         )
 
-    except Exception as exc:
+    except Exception:
         state["status"] = "verification_error"
         state["message"] = (
-            "Answer verification failed: "
-            f"{exc}"
+            "I couldn't verify the generated answer against "
+            "the documentation. No unverified answer will be returned."
         )
 
     return state
