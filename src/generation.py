@@ -34,7 +34,7 @@ Return JSON only:
 
 {{
   "answer": "direct answer grounded only in the evidence",
-  "used_chunk_ids": [0, 1]
+"used_chunk_ids": ["actual_chunk_id_1", "actual_chunk_id_2"]
 }}
 
 used_chunk_ids must contain ONLY the IDs of evidence chunks
@@ -42,7 +42,7 @@ that actually support the answer.
 """
 
 
-def format_chunk_for_prompt(chunk_id, chunk):
+def format_chunk_for_prompt(chunk):
     metadata = {
         key: value
         for key, value in chunk.items()
@@ -51,7 +51,7 @@ def format_chunk_for_prompt(chunk_id, chunk):
 
     return (
         f"---\n"
-        f"Chunk ID: {chunk_id}\n"
+        f"Chunk ID: {chunk['chunk_id']}\n"
         f"Metadata: {metadata}\n"
         f"Text: {chunk['text']}\n"
         f"---"
@@ -119,11 +119,8 @@ def generate_answer(question, graded_evidence):
         }
 
     chunks_text = "\n".join(
-        format_chunk_for_prompt(
-            chunk_id=index,
-            chunk=chunk,
-        )
-        for index, chunk in enumerate(chunks)
+    format_chunk_for_prompt(chunk)
+    for chunk in chunks
     )
 
     prompt = GEN_PROMPT.format(
@@ -174,26 +171,36 @@ def generate_answer(question, graded_evidence):
     ):
         raw_ids = []
 
+    valid_chunk_ids = {
+        chunk["chunk_id"]
+        for chunk in chunks
+    }
+
     valid_ids = []
 
     for chunk_id in raw_ids:
         if (
-            isinstance(chunk_id, int)
-            and 0 <= chunk_id < len(chunks)
+            isinstance(chunk_id, str)
+            and chunk_id in valid_chunk_ids
             and chunk_id not in valid_ids
         ):
             valid_ids.append(chunk_id)
 
+    chunks_by_id = {
+        chunk["chunk_id"]: chunk
+        for chunk in chunks
+    }
+
     citations = [
-        build_citation(chunks[chunk_id])
+        build_citation(chunks_by_id[chunk_id])
         for chunk_id in valid_ids
     ]
 
     return {
-        "status": "found",
-        "answer": answer,
-        "used_chunk_ids": valid_ids,
-        "citations": citations,
+    "status": "found",
+    "answer": answer,
+    "used_chunk_ids": valid_ids,
+    "citations": citations,
     }
 
 

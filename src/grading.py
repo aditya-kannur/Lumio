@@ -155,20 +155,21 @@ def _format_candidates(
 
     for candidate_id, chunk in enumerate(chunks):
 
-        candidates.append(
-            {
-                "candidate_id": candidate_id,
-                "question": question,
-                "expected_version": expected_version,
-                "expected_doc_type": expected_doc_type,
-                "chunk_metadata": {
-                    key: value
-                    for key, value in chunk.items()
-                    if key != "text"
-                },
-                "chunk_text": chunk.get("text", ""),
-            }
-        )
+       candidates.append(
+    {
+        "candidate_id": candidate_id,
+        "chunk_id": chunk.get("chunk_id"),
+        "question": question,
+        "expected_version": expected_version,
+        "expected_doc_type": expected_doc_type,
+        "chunk_metadata": {
+            key: value
+            for key, value in chunk.items()
+            if key != "text"
+        },
+        "chunk_text": chunk.get("text", ""),
+    }
+    )
 
     return candidates
 
