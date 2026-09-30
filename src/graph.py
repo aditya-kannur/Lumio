@@ -12,6 +12,14 @@ from src.grading import retrieve_and_grade
 from src.generation import generate_answer
 from src.verification import generate_verified_answer
 
+from src.messages import (
+    GENERATION_ERROR_MESSAGE,
+    RETRIEVAL_ERROR_MESSAGE,
+    ROUTING_ERROR_MESSAGE,
+    UNDERSTANDING_ERROR_MESSAGE,
+    VERIFICATION_ERROR_MESSAGE,
+)
+
 
 # ---------------------------------------------------------------------------
 # PIPELINE STATE
@@ -67,10 +75,7 @@ def understand_node(state: PipelineState):
 
     except Exception:
         state["status"] = "understanding_error"
-        state["message"] = (
-            "I couldn't reliably understand the request. "
-            "Please try rephrasing your question."
-        )
+        state["message"] = UNDERSTANDING_ERROR_MESSAGE
 
     return state
 
@@ -123,10 +128,7 @@ def route_node(state: PipelineState):
 
     except Exception:
         state["status"] = "routing_error"
-        state["message"] = (
-            "I couldn't determine which documentation path "
-            "to use for your request."
-        )
+        state["message"] = ROUTING_ERROR_MESSAGE
 
     return state
 
@@ -280,10 +282,7 @@ def retrieve_node(
 
     except Exception:
         state["status"] = "retrieval_error"
-        state["message"] = (
-            "I couldn't retrieve or evaluate the relevant "
-            "documentation. Please try again."
-        )
+        state["message"] = RETRIEVAL_ERROR_MESSAGE
 
     return state
 
@@ -316,11 +315,13 @@ def generate_node(state: PipelineState):
         state["generation_result"] = generation_result
 
         if generation_result.get("status") != "found":
-            state["status"] = "generation_failed"
-            state["message"] = (
-                "Generation could not produce an answer "
-                "from the graded evidence."
+            state["status"] = generation_result.get(
+                "status",
+                "generation_error",
             )
+            state["message"] = generation_result.get(
+                "answer"
+            ) or GENERATION_ERROR_MESSAGE
             return state
 
         state["status"] = "generated"
@@ -330,10 +331,7 @@ def generate_node(state: PipelineState):
 
     except Exception:
         state["status"] = "generation_error"
-        state["message"] = (
-            "I couldn't generate an answer from the available "
-            "documentation. Please try again."
-        )
+        state["message"] = GENERATION_ERROR_MESSAGE
 
     return state
 
@@ -404,19 +402,19 @@ def verify_node(state: PipelineState):
             0.0,
         )
 
-        state["status"] = "verification_failed"
+        state["status"] = verified_result.get(
+            "status",
+            "verification_failed",
+        )
 
         state["message"] = (
             verification.get("reason")
-            or "Generated answer failed evidence verification."
+            or VERIFICATION_ERROR_MESSAGE
         )
 
     except Exception:
         state["status"] = "verification_error"
-        state["message"] = (
-            "I couldn't verify the generated answer against "
-            "the documentation. No unverified answer will be returned."
-        )
+        state["message"] = VERIFICATION_ERROR_MESSAGE
 
     return state
 

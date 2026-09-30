@@ -22,9 +22,8 @@ RETRIEVAL_NOT_FOUND_MESSAGE = (
 
 
 GRADER_ERROR_MESSAGE = (
-    "Not found in docs for this version. "
-    "The evidence grader could not validate the retrieved evidence after "
-    "the maximum number of grading attempts."
+    "The evidence grading service could not validate the retrieved "
+    "evidence. Please try again."
 )
 
 LLM_SERVICE_ERROR_MESSAGE = (
