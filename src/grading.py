@@ -376,14 +376,23 @@ def _grade_group(
 
         return {
             "status": "grader_error",
+            "error_type": "invalid_grader_response",
             "evidence_sufficient": False,
             "selected_candidate_ids": [],
             "selected_chunks": [],
             "rewritten_question": None,
-            "reason": (
-                "Grader response could not be validated: "
-                f"{exc}"
-            ),
+            "reason": "Grader response could not be validated.",
+        }
+
+    except Exception:
+        return {
+            "status": "grader_error",
+            "error_type": "grader_service_error",
+            "evidence_sufficient": False,
+            "selected_candidate_ids": [],
+            "selected_chunks": [],
+            "rewritten_question": None,
+            "reason": "The grading service failed.",
         }
 
     selected_chunks = [
@@ -515,17 +524,23 @@ def retrieve_and_grade(
         # SUCCESS
         # --------------------------------------------------------------
 
-        if grading["status"] == "found":
-            return {
-                "status": "found",
-                "evidence_sufficient": True,
-                "chunks": grading["selected_chunks"],
-                "selected_candidate_ids": grading["selected_candidate_ids"],
-                "attempts": attempt,
-                "original_question": original_question,
-                "search_query": search_query,
-                "grading_reason": grading["reason"],
-            }
+        if grading["status"] == "grader_error":
+
+            if attempt == MAX_RETRIES + 1:
+
+                return {
+                    "status": "grading_error",
+                    "message": GRADER_ERROR_MESSAGE,
+                    "attempts": attempt,
+                    "original_question": original_question,
+                    "search_query": search_query,
+                    "error_type": grading.get(
+                        "error_type",
+                        "grader_error",
+                    ),
+                }
+
+            continue
 
         # --------------------------------------------------------------
         # GRADER ERROR

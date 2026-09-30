@@ -26,3 +26,38 @@ GRADER_ERROR_MESSAGE = (
     "The evidence grader could not validate the retrieved evidence after "
     "the maximum number of grading attempts."
 )
+
+LLM_SERVICE_ERROR_MESSAGE = (
+    "The language model service is currently unavailable. "
+    "Please try again."
+)
+
+
+GENERATION_ERROR_MESSAGE = (
+    "I couldn't generate an answer from the available "
+    "documentation. Please try again."
+)
+
+
+VERIFICATION_ERROR_MESSAGE = (
+    "I couldn't verify the generated answer against "
+    "the documentation. No unverified answer will be returned."
+)
+
+
+RETRIEVAL_ERROR_MESSAGE = (
+    "I couldn't retrieve or evaluate the relevant "
+    "documentation. Please try again."
+)
+
+
+UNDERSTANDING_ERROR_MESSAGE = (
+    "I couldn't reliably understand the request. "
+    "Please try rephrasing your question."
+)
+
+
+ROUTING_ERROR_MESSAGE = (
+    "I couldn't determine which documentation path "
+    "to use for your request."
+)
