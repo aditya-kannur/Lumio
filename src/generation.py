@@ -1,15 +1,12 @@
-import os
 import json
+import os
 
-from google import genai
-from google.genai import types
 from dotenv import load_dotenv
+from google import genai
 
 load_dotenv()
 
-client = genai.Client(
-    api_key=os.environ["GEMINI_API_KEY"]
-)
+client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
 MODEL = "gemini-3.5-flash-lite"
 
@@ -17,52 +14,54 @@ CITATION_TEMPLATE = (
     "[Source: {doc_type} | {identifier} | version {version}]"
 )
 
-GEN_PROMPT = """Answer the developer's question using ONLY the
-provided evidence.
+GEN_PROMPT = """
+Answer the developer's question using ONLY the provided evidence.
 
 Do not use outside knowledge.
-
-If the evidence is insufficient, do not invent an answer.
+Do not invent facts.
+Only use claims that are supported by the evidence.
 
 Question:
-"{question}"
+{question}
 
 Evidence:
 {chunks_text}
 
-Return JSON only:
+Return ONLY valid JSON:
 
 {{
-  "answer": "direct answer grounded only in the evidence",
-"used_chunk_ids": ["actual_chunk_id_1", "actual_chunk_id_2"]
+  "answer": "clear direct answer",
+  "used_chunk_ids": ["persistent_chunk_id_1"]
 }}
 
-used_chunk_ids must contain ONLY the IDs of evidence chunks
-that actually support the answer.
+Rules:
+- used_chunk_ids must contain ONLY chunk IDs that directly support the answer.
+- Do not include irrelevant chunks.
+- If the evidence does not support an answer, return an empty answer
+  and an empty used_chunk_ids list.
 """
 
 
 def format_chunk_for_prompt(chunk):
-    metadata = {
-        key: value
-        for key, value in chunk.items()
-        if key != "text"
+    chunk_id = chunk.get("chunk_id", "")
+
+    meta = {
+        k: v
+        for k, v in chunk.items()
+        if k not in {"text", "chunk_id"}
     }
 
     return (
-        f"---\n"
-        f"Chunk ID: {chunk['chunk_id']}\n"
-        f"Metadata: {metadata}\n"
+        "---\n"
+        f"Chunk ID: {chunk_id}\n"
+        f"Metadata: {meta}\n"
         f"Text: {chunk['text']}\n"
-        f"---"
+        "---"
     )
 
 
 def build_citation(chunk):
-    doc_type = chunk.get(
-        "doc_type",
-        "unknown",
-    )
+    doc_type = chunk.get("doc_type", "unknown")
 
     version = (
         chunk.get("version")
@@ -74,6 +73,7 @@ def build_citation(chunk):
         chunk.get("endpoint")
         or chunk.get("section")
         or chunk.get("summary", "")[:50]
+        or chunk.get("chunk_id", "unknown")
     )
 
     return CITATION_TEMPLATE.format(
@@ -83,44 +83,62 @@ def build_citation(chunk):
     )
 
 
+def _parse_generation_response(response_text):
+    text = response_text.strip()
+
+    if text.startswith("```"):
+        text = text.replace("```json", "", 1)
+        text = text.replace("```", "", 1).strip()
+
+    return json.loads(text)
+
+
 def generate_answer(question, graded_evidence):
     """
     Generate an answer only from evidence accepted by grading.
+
+    Returns:
+        {
+            "status": "found" | "not_found",
+            "answer": str,
+            "used_chunk_ids": list[str],
+            "citations": list[str]
+        }
     """
 
-    if not graded_evidence.get(
-        "evidence_sufficient",
-        False,
-    ):
+    if not graded_evidence.get("evidence_sufficient"):
         return {
             "status": "not_found",
             "answer": (
-                "The available documentation does not "
-                "provide enough evidence to answer this question."
+                "The available evidence is insufficient "
+                "to answer this question reliably."
             ),
             "used_chunk_ids": [],
             "citations": [],
         }
 
-    chunks = graded_evidence.get(
-        "chunks",
-        [],
-    )
+    chunks = graded_evidence.get("chunks", [])
 
     if not chunks:
         return {
             "status": "not_found",
             "answer": (
-                "The available documentation does not "
-                "provide enough evidence to answer this question."
+                "The available evidence is insufficient "
+                "to answer this question reliably."
             ),
             "used_chunk_ids": [],
             "citations": [],
         }
 
+    valid_chunk_ids = {
+        chunk["chunk_id"]
+        for chunk in chunks
+        if chunk.get("chunk_id")
+    }
+
     chunks_text = "\n".join(
-    format_chunk_for_prompt(chunk)
-    for chunk in chunks
+        format_chunk_for_prompt(chunk)
+        for chunk in chunks
     )
 
     prompt = GEN_PROMPT.format(
@@ -128,79 +146,66 @@ def generate_answer(question, graded_evidence):
         chunks_text=chunks_text,
     )
 
-    try:
-        response = client.models.generate_content(
-            model=MODEL,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-            ),
-        )
-
-        result = json.loads(response.text)
-
-    except (
-        json.JSONDecodeError,
-        AttributeError,
-        TypeError,
-        ValueError,
-    ) as exc:
-        return {
-            "status": "generation_error",
-            "answer": "",
-            "used_chunk_ids": [],
-            "citations": [],
-            "error": str(exc),
-        }
-
-    answer = str(
-        result.get(
-            "answer",
-            "",
-        )
-    ).strip()
-
-    raw_ids = result.get(
-        "used_chunk_ids",
-        [],
+    response = client.models.generate_content(
+        model=MODEL,
+        contents=prompt,
     )
 
-    if not isinstance(
-        raw_ids,
-        list,
-    ):
-        raw_ids = []
+    try:
+        result = _parse_generation_response(response.text)
+    except (json.JSONDecodeError, AttributeError):
+        return {
+            "status": "not_found",
+            "answer": (
+                "The generated response could not be "
+                "validated against the evidence."
+            ),
+            "used_chunk_ids": [],
+            "citations": [],
+        }
 
-    valid_chunk_ids = {
-        chunk["chunk_id"]
-        for chunk in chunks
-    }
+    answer = str(result.get("answer", "")).strip()
 
-    valid_ids = []
+    used_chunk_ids = result.get("used_chunk_ids", [])
 
-    for chunk_id in raw_ids:
-        if (
-            isinstance(chunk_id, str)
-            and chunk_id in valid_chunk_ids
-            and chunk_id not in valid_ids
-        ):
-            valid_ids.append(chunk_id)
+    if not isinstance(used_chunk_ids, list):
+        used_chunk_ids = []
+
+    # Only allow IDs that actually exist in graded evidence.
+    used_chunk_ids = [
+        chunk_id
+        for chunk_id in used_chunk_ids
+        if isinstance(chunk_id, str)
+        and chunk_id in valid_chunk_ids
+    ]
+
+    if not answer or not used_chunk_ids:
+        return {
+            "status": "not_found",
+            "answer": (
+                "The available evidence is insufficient "
+                "to generate a reliable answer."
+            ),
+            "used_chunk_ids": [],
+            "citations": [],
+        }
 
     chunks_by_id = {
         chunk["chunk_id"]: chunk
         for chunk in chunks
+        if chunk.get("chunk_id")
     }
 
     citations = [
         build_citation(chunks_by_id[chunk_id])
-        for chunk_id in valid_ids
+        for chunk_id in used_chunk_ids
     ]
 
     return {
-    "status": "found",
-    "answer": answer,
-    "used_chunk_ids": valid_ids,
-    "citations": citations,
+        "status": "found",
+        "answer": answer,
+        "used_chunk_ids": used_chunk_ids,
+        "citations": citations,
     }
 
 
