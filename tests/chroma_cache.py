@@ -6,6 +6,7 @@ First run:
 
 Later runs:
     chunks -> existing Chroma index
+             no embedding model loading
              no chunk re-embedding
 
 The cache is invalidated if the chunk content or embedding model changes.
@@ -69,7 +70,11 @@ def _load_manifest():
             encoding="utf-8",
         ) as f:
             return json.load(f)
-    except (OSError, json.JSONDecodeError):
+
+    except (
+        OSError,
+        json.JSONDecodeError,
+    ):
         return None
 
 
@@ -107,16 +112,24 @@ def _cache_is_valid(
     if not manifest:
         return False
 
-    if manifest.get("embedding_model") != EMBEDDING_MODEL_NAME:
+    if manifest.get(
+        "embedding_model"
+    ) != EMBEDDING_MODEL_NAME:
         return False
 
-    if manifest.get("collection") != CHROMA_COLLECTION_NAME:
+    if manifest.get(
+        "collection"
+    ) != CHROMA_COLLECTION_NAME:
         return False
 
-    if manifest.get("chunk_count") != len(chunks):
+    if manifest.get(
+        "chunk_count"
+    ) != len(chunks):
         return False
 
-    if manifest.get("chunks_hash") != _chunks_hash(chunks):
+    if manifest.get(
+        "chunks_hash"
+    ) != _chunks_hash(chunks):
         return False
 
     if collection.count() != len(chunks):
@@ -129,28 +142,35 @@ def get_chroma_collection(chunks):
     """
     Load the persistent Chroma collection.
 
-    If the cache is valid:
-        reuse existing embeddings.
+    Cache hit:
+        Reuse the existing Chroma collection without
+        loading the SentenceTransformer model.
 
-    If the cache is missing/stale:
-        rebuild the collection once.
+    Cache miss/stale:
+        Load the embedding model and rebuild the collection.
     """
 
     print(
         f"  Chroma cache: {CHROMA_PERSIST_DIR}"
     )
 
-    ef = SentenceTransformerEmbeddingFunction(
-        model_name=EMBEDDING_MODEL_NAME
-    )
+    # --------------------------------------------------------------
+    # CREATE CLIENT + COLLECTION FIRST
+    #
+    # IMPORTANT:
+    # Do NOT initialize SentenceTransformer here.
+    # Loading the embedding model is expensive.
+    # --------------------------------------------------------------
 
     client = chromadb.PersistentClient(
         path=CHROMA_PERSIST_DIR
     )
 
+    # Do not provide an embedding function yet.
+    # This lets us inspect the existing collection/cache
+    # without loading the SentenceTransformer model.
     collection = client.get_or_create_collection(
-        name=CHROMA_COLLECTION_NAME,
-        embedding_function=ef,
+        name=CHROMA_COLLECTION_NAME
     )
 
     # --------------------------------------------------------------
@@ -166,6 +186,7 @@ def get_chroma_collection(chunks):
             f"{collection.count()} chunks, "
             f"embeddings reused."
         )
+
         return collection
 
     # --------------------------------------------------------------
@@ -174,6 +195,23 @@ def get_chroma_collection(chunks):
 
     print(
         "  Chroma: cache miss or stale index."
+    )
+
+    print(
+        "  Chroma: loading embedding model..."
+    )
+
+    # Only load the expensive embedding model
+    # when rebuilding is actually necessary.
+    ef = SentenceTransformerEmbeddingFunction(
+        model_name=EMBEDDING_MODEL_NAME
+    )
+
+    # Attach the embedding function to the collection
+    # used for indexing.
+    collection = client.get_or_create_collection(
+        name=CHROMA_COLLECTION_NAME,
+        embedding_function=ef,
     )
 
     print(
@@ -218,8 +256,8 @@ def get_chroma_collection(chunks):
         metadatas.append(metadata)
 
     ids = [
-    chunk["chunk_id"]
-    for chunk in chunks
+        chunk["chunk_id"]
+        for chunk in chunks
     ]
 
     batch_size = 50
