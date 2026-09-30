@@ -218,8 +218,8 @@ def get_chroma_collection(chunks):
         metadatas.append(metadata)
 
     ids = [
-        f"chunk_{i}"
-        for i in range(len(chunks))
+    chunk["chunk_id"]
+    for chunk in chunks
     ]
 
     batch_size = 50

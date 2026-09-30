@@ -83,7 +83,7 @@ def build_chroma_collection(chunks, embed_model=None):
                 meta[key] = ", ".join(str(v) for v in val)
         metadatas.append(meta)
 
-    ids = [f"chunk_{i}" for i in range(len(chunks))]
+    ids = [chunk["chunk_id"]for chunk in chunks]
 
     # Add in batches of 50 so Chroma doesn't choke on large payloads.
     batch = 50
@@ -133,8 +133,10 @@ def hybrid_retrieve(query, collection, bm25, chunks, model=None, doc_type=None, 
     if not filtered_indices:
         return []
 
-    filtered_ids = {f"chunk_{i}" for i in filtered_indices}
-
+    filtered_ids = {
+        chunks[i]["chunk_id"]
+        for i in filtered_indices
+    }
     # --- Dense retrieval: small n_results, filter by doc_type in Chroma ---
     n_dense = min(top_k * 4, len(filtered_indices))
     where = {"doc_type": doc_type} if doc_type else None
@@ -149,12 +151,26 @@ def hybrid_retrieve(query, collection, bm25, chunks, model=None, doc_type=None, 
     tokenized_query = query.lower().split()
     bm25_scores = bm25.get_scores(tokenized_query)
     bm25_ranked_all = sorted(range(len(chunks)), key=lambda i: bm25_scores[i], reverse=True)
-    bm25_ranked = [f"chunk_{i}" for i in bm25_ranked_all if f"chunk_{i}" in filtered_ids]
-
+    bm25_ranked = [
+        chunks[i]["chunk_id"]
+        for i in bm25_ranked_all
+        if chunks[i]["chunk_id"] in filtered_ids
+    ]
     # --- Fuse ---
-    fused_ids = reciprocal_rank_fusion([dense_ranked, bm25_ranked])[:top_k]
-    fused_indices = [int(doc_id.split("_")[1]) for doc_id in fused_ids]
-    return [chunks[i] for i in fused_indices]
+    fused_ids = reciprocal_rank_fusion(
+        [dense_ranked, bm25_ranked]
+    )[:top_k]
+
+    chunks_by_id = {
+        chunk["chunk_id"]: chunk
+        for chunk in chunks
+    }
+
+    return [
+        chunks_by_id[chunk_id]
+        for chunk_id in fused_ids
+        if chunk_id in chunks_by_id
+    ]
 
 
 
