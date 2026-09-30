@@ -4,7 +4,9 @@ import os
 from google import genai
 from dotenv import load_dotenv
 
+
 load_dotenv()
+
 
 client = genai.Client(
     api_key=os.environ["GEMINI_API_KEY"]
@@ -46,8 +48,21 @@ Check all of the following:
 5. hallucination
    Does the answer contain information that is not present in the evidence?
 
-6. confidence
-   How confident are you that the answer is fully grounded in the evidence?
+6. failure_type
+
+   Use "none" when the answer is fully supported.
+
+   Use "generation_issue" when:
+   - the supplied evidence contains enough information to answer the question,
+   - but Generation misunderstood, misused, or invented information.
+
+   Use "evidence_issue" when:
+   - the supplied evidence does not contain enough information to answer
+     the question,
+   - the required information is missing,
+   - or the retrieved evidence is fundamentally insufficient or wrong.
+
+7. confidence
    Return a number from 0.0 to 1.0.
 
 Return ONLY valid JSON:
@@ -59,6 +74,7 @@ Return ONLY valid JSON:
   "irrelevant_evidence": false,
   "citation_supported": true,
   "hallucination": false,
+  "failure_type": "none",
   "confidence": 0.95,
   "reason": "short explanation"
 }}
@@ -66,8 +82,8 @@ Return ONLY valid JSON:
 Rules:
 - verified is true ONLY when all checks pass.
 - Do not use outside knowledge.
-- Do not judge whether the answer is generally correct outside the supplied evidence.
-- Check only whether the answer is supported by the supplied evidence.
+- Do not rewrite the answer.
+- Distinguish an incorrect answer from insufficient evidence.
 """
 
 
@@ -78,7 +94,48 @@ def _parse_verification_response(response_text):
         raw = raw.replace("```json", "", 1)
         raw = raw.replace("```", "", 1).strip()
 
-    return json.loads(raw)
+    data = json.loads(raw)
+
+    failure_type = data.get(
+        "failure_type",
+        "none",
+    )
+
+    if failure_type not in {
+        "none",
+        "generation_issue",
+        "evidence_issue",
+    }:
+        failure_type = "generation_issue"
+
+    return {
+        "verified": bool(
+            data.get("verified", False)
+        ),
+        "supported": bool(
+            data.get("supported", False)
+        ),
+        "version_mixed": bool(
+            data.get("version_mixed", False)
+        ),
+        "irrelevant_evidence": bool(
+            data.get("irrelevant_evidence", False)
+        ),
+        "citation_supported": bool(
+            data.get("citation_supported", False)
+        ),
+        "hallucination": bool(
+            data.get("hallucination", False)
+        ),
+        "failure_type": failure_type,
+        "confidence": data.get(
+            "confidence",
+            0.0,
+        ),
+        "reason": str(
+            data.get("reason", "")
+        ).strip(),
+    }
 
 
 def verify_answer(
@@ -99,6 +156,7 @@ def verify_answer(
             "irrelevant_evidence": False,
             "citation_supported": False,
             "hallucination": True,
+            "failure_type": "generation_issue",
             "confidence": 0.0,
             "reason": "Generated answer is empty.",
         }
@@ -111,6 +169,7 @@ def verify_answer(
             "irrelevant_evidence": True,
             "citation_supported": False,
             "hallucination": True,
+            "failure_type": "evidence_issue",
             "confidence": 0.0,
             "reason": "No evidence was supplied for verification.",
         }
@@ -147,7 +206,6 @@ def verify_answer(
         TypeError,
         ValueError,
     ) as exc:
-
         return {
             "verified": False,
             "supported": False,
@@ -155,6 +213,7 @@ def verify_answer(
             "irrelevant_evidence": False,
             "citation_supported": False,
             "hallucination": True,
+            "failure_type": "generation_issue",
             "confidence": 0.0,
             "reason": (
                 f"Verification response could not be parsed: {exc}"
@@ -204,6 +263,16 @@ def verify_answer(
         and not hallucination
     )
 
+    failure_type = result.get(
+        "failure_type",
+        "none",
+    )
+
+    if verified:
+        failure_type = "none"
+    elif failure_type == "none":
+        failure_type = "generation_issue"
+
     return {
         "verified": verified,
         "supported": supported,
@@ -211,6 +280,7 @@ def verify_answer(
         "irrelevant_evidence": irrelevant_evidence,
         "citation_supported": citation_supported,
         "hallucination": hallucination,
+        "failure_type": failure_type,
         "confidence": confidence,
         "reason": str(
             result.get("reason", "")
@@ -267,7 +337,6 @@ def generate_verified_answer(
         )
     )
 
-    # Generation must identify at least one supporting chunk.
     if not used_chunk_ids:
         return {
             "status": "hallucination_flagged",
@@ -277,20 +346,19 @@ def generate_verified_answer(
             "confidence": 0.0,
             "verification": {
                 "verified": False,
+                "failure_type": "generation_issue",
                 "reason": (
                     "Generation returned no supporting chunk IDs."
                 ),
             },
         }
 
-    # Resolve Generation's persistent IDs back to the graded chunks.
     used_chunks = [
         chunk
         for chunk in graded_chunks
         if chunk.get("chunk_id") in used_chunk_ids
     ]
 
-    # Every used ID must exist in the graded evidence.
     if len(used_chunks) != len(used_chunk_ids):
         return {
             "status": "hallucination_flagged",
@@ -302,6 +370,7 @@ def generate_verified_answer(
             "confidence": 0.0,
             "verification": {
                 "verified": False,
+                "failure_type": "generation_issue",
                 "reason": (
                     "Generation referenced a chunk ID that was "
                     "not present in graded evidence."
