@@ -430,18 +430,13 @@ def retrieve_and_grade(
 
     search_query is the query actually sent to retrieval.
 
-    On failure, Gemini may rewrite search_query.
+    On insufficient evidence, Gemini may rewrite search_query.
 
     Maximum attempts:
         MAX_RETRIES + 1
-
-    With MAX_RETRIES = 2:
-        3 total grading calls maximum.
     """
 
     original_question = question
-
-    # This is the query state carried between attempts.
     search_query = question
 
     for attempt in range(
@@ -475,7 +470,7 @@ def retrieve_and_grade(
         ):
             chunks = []
 
-        # These are already RRF-ranked by retrieval.
+        # Retrieval is already RRF-ranked.
         chunks = chunks[
             :MAX_GRADING_CHUNKS
         ]
@@ -496,7 +491,6 @@ def retrieve_and_grade(
         if not chunks:
 
             if attempt == MAX_RETRIES + 1:
-
                 return {
                     "status": "not_found",
                     "message": RETRIEVAL_NOT_FOUND_MESSAGE,
@@ -524,10 +518,34 @@ def retrieve_and_grade(
         # SUCCESS
         # --------------------------------------------------------------
 
+        if grading["status"] == "found":
+            return {
+                "status": "found",
+                "message": "Evidence found.",
+                "attempts": attempt,
+                "original_question": original_question,
+                "search_query": search_query,
+                "chunks": grading.get(
+                    "selected_chunks",
+                    [],
+                ),
+                "selected_candidate_ids": grading.get(
+                    "selected_candidate_ids",
+                    [],
+                ),
+                "grading_reason": grading.get(
+                    "reason",
+                    "",
+                ),
+            }
+
+        # --------------------------------------------------------------
+        # GRADER ERROR
+        # --------------------------------------------------------------
+
         if grading["status"] == "grader_error":
 
             if attempt == MAX_RETRIES + 1:
-
                 return {
                     "status": "grading_error",
                     "message": GRADER_ERROR_MESSAGE,
@@ -538,24 +556,6 @@ def retrieve_and_grade(
                         "error_type",
                         "grader_error",
                     ),
-                }
-
-            continue
-
-        # --------------------------------------------------------------
-        # GRADER ERROR
-        # --------------------------------------------------------------
-
-        if grading["status"] == "grader_error":
-
-            if attempt == MAX_RETRIES + 1:
-
-                return {
-                    "status": "not_found",
-                    "message": GRADER_ERROR_MESSAGE,
-                    "attempts": attempt,
-                    "original_question": original_question,
-                    "search_query": search_query,
                 }
 
             continue
@@ -576,7 +576,6 @@ def retrieve_and_grade(
         # --------------------------------------------------------------
 
         if attempt == MAX_RETRIES + 1:
-
             return {
                 "status": "not_found",
                 "message": NOT_FOUND_MESSAGE,
