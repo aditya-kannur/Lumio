@@ -1,107 +1,46 @@
 
-# VersionQuery
+## Testing Workflow
 
-A version-aware Q&A assistant for API documentation.
+Lumio uses `pytest` for modular, automated testing of the implemented pipeline stages.
 
-VersionQuery answers developer questions using version-specific API references, migration guides, and changelogs. It retrieves relevant documentation, generates grounded answers, verifies them, and provides citations to help developers confirm the information.
+### Run Tests
 
-## Problem
+Run the complete test suite:
 
-API documentation changes between versions. Generic documentation search and RAG systems can retrieve information from the wrong version, mix incompatible behaviors, or generate answers without verifiable sources.
+```bash
+pytest
+```
 
-VersionQuery addresses this by making version correctness, evidence grounding, and source verification core parts of the retrieval and generation pipeline.
+Run tests for a specific stage:
 
-## Core Features
+```bash
+pytest tests/test_chunking.py -v
+pytest tests/test_data_sources.py -v
+pytest tests/test_retrieval_pipeline.py -v
+pytest tests/test_retrieval.py -v
+pytest tests/test_grading.py -v
+pytest tests/test_generation_verification.py -v
+pytest tests/test_graph_and_api.py -v
+```
 
-- **Query understanding:** Identifies the question intent, requested API version, document type, and migration source and target versions.
-- **Structure-aware chunking:** Splits API references by endpoint, migration guides by change, and changelogs by release entry.
-- **Hybrid retrieval:** Combines dense vector search, BM25 keyword search, and Reciprocal Rank Fusion (RRF).
-- **Hard filtering:** Applies version and document-type constraints to prevent retrieval from incompatible documentation.
-- **Document grading:** Evaluates retrieved evidence for relevance, version correctness, and document-type suitability.
-- **Retry handling:** Transforms queries and retries retrieval when the initial evidence is insufficient, subject to retry limits.
-- **Multi-hop migration retrieval:** Retrieves information across intermediate versions and organizes it into an ordered upgrade path.
-- **Grounded generation:** Generates answers using retrieved documentation rather than unsupported general knowledge.
-- **Answer verification:** Checks evidence support, version consistency, and citation validity.
-- **Honest failure:** Returns a not-found response when sufficient supporting documentation cannot be established.
-- **Citations:** Provides source information, including document, section, and version.
+### Test Organization
 
-## Architecture
+- **`tests/`** — Modular pytest tests for individual pipeline stages, isolated behavior, edge cases, and regression checks. These tests are intended to run automatically and provide fast feedback after code changes.
+- **`verify/`** — Broader validation scripts for checking integrated pipeline behavior, often using real documentation data and retrieval components.
 
-The pipeline follows this general flow:
+Use `tests/` for routine development and regression testing. Use `verify/` for broader manual validation of pipeline behavior.
 
-1. Query understanding
-2. Routing and document selection
-3. Hybrid retrieval
-4. Document grading
-5. Query transformation and retry when needed
-6. Answer generation
-7. Answer verification and citation
+### Current Coverage
 
-Migration queries additionally use version-hop decomposition to retrieve relevant changes across the requested upgrade path.
+The implemented pipeline stages covered by the test suite include:
 
-The project uses LangGraph to coordinate pipeline stages and conditional transitions.
+- Data sources and document chunking
+- Retrieval pipeline and hybrid retrieval
+- Query understanding and routing
+- Document grading and retry handling
+- Migration decomposition
+- Answer generation and verification
+- Graph orchestration and conditional routing
 
-## Tech Stack
+The API layer is not yet implemented and will be tested after its implementation.
 
-| Component | Technology |
-|---|---|
-| Language | Python |
-| Documentation dataset | Notion API documentation |
-| Chunking | Rule-based, structure-aware parsing |
-| Dense retrieval | Sentence-transformer embeddings |
-| Sparse retrieval | BM25 (`rank_bm25`) |
-| Vector store | Chroma |
-| Hybrid ranking | Reciprocal Rank Fusion |
-| LLM tasks | Query understanding, grading, generation, verification |
-| Orchestration | LangGraph |
-| Backend | FastAPI (planned integration) |
-| Frontend | To be implemented |
-
-## Data Sources
-
-VersionQuery currently uses Notion's public API documentation as its representative dataset, including:
-
-- API reference documentation
-- Migration and upgrade guides
-- Changelog entries
-
-The ingestion and retrieval pipeline preserves document-type and version metadata so that evidence can be selected according to the question.
-
-## Design Principles
-
-### Version correctness first
-
-Version and document-type constraints take priority over semantic similarity. Content from an incompatible version must not be treated as valid evidence simply because it is relevant to the wording of a question.
-
-### Evidence-grounded answers
-
-Generated claims must be supported by retrieved documentation. If sufficient evidence cannot be established, the system should not guess.
-
-### Verifiable citations
-
-Answers should identify the source document, relevant section, and API version so developers can verify the response.
-
-### Controlled retries
-
-Retrieval retries are bounded to avoid uncontrolled loops and to ensure that unsupported questions eventually receive an honest not-found response.
-
-### Structure-aware retrieval
-
-API endpoints, migration changes, and changelog entries are represented as meaningful document units rather than arbitrary text fragments.
-
-## Scope
-
-The current focus is a working demonstration of version-aware documentation retrieval and grounded answer generation using the Notion API dataset.
-
-Out of scope for the MVP:
-
-- Web search or general-knowledge fallback
-- Multi-vendor support
-- Real-time documentation synchronization
-- Cross-encoder reranking and multi-query retrieval
-- User accounts, authentication, and multi-tenant usage
-- Production-scale infrastructure and latency optimization
-
-## Core Principle
-
-> If an answer cannot be grounded in documentation for the correct API version, VersionQuery should not answer.
