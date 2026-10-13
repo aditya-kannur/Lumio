@@ -1,13 +1,22 @@
+
 import streamlit as st
 import requests
 from dotenv import load_dotenv
+
 load_dotenv()
 
-st.title("VersionQuery")
-st.caption("Version-aware Q&A over Notion API docs")
+st.title("Lumio")
+st.caption("Version-aware Q&A over Notion API documentation")
+st.markdown("Ask questions about API versions, behavior changes, and migrations.")
 
 if "history" not in st.session_state:
     st.session_state.history = []
+
+with st.sidebar:
+    st.subheader("Conversation")
+    if st.button("Clear chat", use_container_width=True):
+        st.session_state.history = []
+        st.rerun()
 
 question = st.chat_input("Ask a question about the Notion API...")
 
@@ -17,6 +26,7 @@ for msg in st.session_state.history:
 
 if question:
     st.session_state.history.append({"role": "user", "content": question})
+
     with st.chat_message("user"):
         st.write(question)
 
@@ -30,26 +40,46 @@ if question:
                 )
                 r.raise_for_status()
                 resp = r.json()
+
             except requests.exceptions.ConnectionError:
-                content = "⚠️ Could not reach the backend. Make sure the FastAPI server is running on port 8000."
+                content = (
+                    "⚠️ Could not reach the backend. "
+                    "Make sure the FastAPI server is running on port 8000."
+                )
                 st.error(content)
-                st.session_state.history.append({"role": "assistant", "content": content})
+                st.session_state.history.append(
+                    {"role": "assistant", "content": content}
+                )
                 st.stop()
+
             except Exception as e:
                 content = f"⚠️ Backend error: {e}"
                 st.error(content)
-                st.session_state.history.append({"role": "assistant", "content": content})
+                st.session_state.history.append(
+                    {"role": "assistant", "content": content}
+                )
                 st.stop()
 
             if resp["type"] == "clarification":
                 content = resp["message"]
+
             elif resp["type"] == "not_found":
                 content = resp["message"]
+
             elif resp["type"] == "error":
                 content = f"⚠️ Server error: {resp['message']}"
+
             else:
-                citations = "\n".join(f"- {c}" for c in resp.get("citations", []))
-                content = f"{resp['answer']}\n\n**Sources:**\n{citations}" if citations else resp["answer"]
+                citations = "\n".join(
+                    f"- {c}" for c in resp.get("citations", [])
+                )
+                content = (
+                    f"{resp['answer']}\n\n**Sources:**\n{citations}"
+                    if citations
+                    else resp["answer"]
+                )
 
             st.write(content)
-            st.session_state.history.append({"role": "assistant", "content": content})
+            st.session_state.history.append(
+                {"role": "assistant", "content": content}
+            )
