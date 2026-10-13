@@ -12,6 +12,12 @@ st.markdown("Ask questions about API versions, behavior changes, and migrations.
 if "history" not in st.session_state:
     st.session_state.history = []
 
+with st.sidebar:
+    st.subheader("Conversation")
+    if st.button("Clear chat", use_container_width=True):
+        st.session_state.history = []
+        st.rerun()
+
 question = st.chat_input("Ask a question about the Notion API...")
 
 for msg in st.session_state.history:
